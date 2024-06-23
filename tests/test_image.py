@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from image_module import Image, Piece  # Assuming your classes are in 'image_module.py'
+from arclang.image import Image, Piece  # Assuming your classes are in 'image_module.py'
 
 class TestImageOperations(unittest.TestCase):
     def test_image_equality(self):
