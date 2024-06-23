@@ -16,8 +16,9 @@ classifiers = [
 Changelog = "https://github.com/saisurbehera/arclang/releases"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.12"
 click = ">=8.0.1"
+numpy = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"
@@ -74,5 +75,5 @@ show_error_codes = true
 show_error_context = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "cython"]
 build-backend = "poetry.core.masonry.api"
