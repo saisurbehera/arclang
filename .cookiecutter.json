@@ -1,0 +1,16 @@
+{
+  "_checkout": "2022.6.3",
+  "_output_dir": "/home/sai/Desktop/arc",
+  "_repo_dir": "/home/sai/.cookiecutters/cookiecutter-hypermodern-python",
+  "_template": "gh:cjolowicz/cookiecutter-hypermodern-python",
+  "author": "Sai Surbehera",
+  "copyright_year": "2024",
+  "development_status": "Development Status :: 2 - Pre-Alpha",
+  "email": "ss6365@columbia.edu",
+  "friendly_name": "Arclang",
+  "github_user": "saisurbehera",
+  "license": "MIT",
+  "package_name": "arclang",
+  "project_name": "arclang",
+  "version": "0.0.0"
+}
