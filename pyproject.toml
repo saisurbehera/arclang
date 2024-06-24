@@ -19,6 +19,7 @@ Changelog = "https://github.com/saisurbehera/arclang/releases"
 python = "^3.12"
 click = ">=8.0.1"
 numpy = "^2.0.0"
+matplotlib = "^3.9.0"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"

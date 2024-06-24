@@ -1,5 +1,6 @@
 import numpy as np
 from functools import reduce
+from typing import List, Tuple
 from collections import namedtuple
 
 MAXSIDE = 100
@@ -21,14 +22,10 @@ class Image:
 
     def __getitem__(self, idx):
         i, j = idx
-        # Uncomment the below lines to include boundary checking
-        # assert 0 <= i < self.h and 0 <= j < self.w, "Index out of bounds"
         return self.mask[i, j]
 
     def __setitem__(self, idx, value):
         i, j = idx
-        # Uncomment the below lines to include boundary checking
-        # assert 0 <= i < self.h and 0 <= j < self.w, "Index out of bounds"
         self.mask[i, j] = value
 
     def safe(self, i, j):
@@ -46,6 +43,93 @@ class Image:
         if (self.w, self.h) != (other.w, other.h):
             return (self.w, self.h) < (other.w, other.h)
         return self.mask.flatten().tolist() < other.mask.flatten().tolist()
+    
+    def copy(self) -> 'Image':
+        return Image(self.x, self.y, self.w, self.h, self.mask.copy())
+    
+    
+    def col_mask(self) -> int:
+        mask = 0
+        for i in range(self.h):
+            for j in range(self.w):
+                mask |= 1 << self[i, j]
+        return mask
+    
+    def count_cols(self, include0: int = 0) -> int:
+        mask = self.col_mask()
+        if not include0:
+            mask &= ~1
+        return bin(mask).count('1')
+    
+    def count(self) -> int:
+        return np.sum(self.mask > 0)
+    
+    @staticmethod
+    def full(p: Point, sz: Point, filling: int = 1) -> 'Image':
+        img = Image(p.x, p.y, sz.x, sz.y)
+        img.mask.fill(filling)
+        return img
+    
+    @staticmethod
+    def full_i(p: Point, sz: Point, filling: int = 1) -> 'Image':
+        img = Image(p.x, p.y, sz.x, sz.y)
+        img.mask.fill(filling)
+        return img
+
+    @staticmethod
+    def empty_p(p: Point, sz: Point) -> 'Image':
+        return Image.full(p, sz, 0)
+    
+    @staticmethod
+    def empty(x: int, y: int, w: int, h: int) -> 'Image':
+        return Image(x, y, w, h, np.zeros((h, w), dtype=np.int8))
+
+
+    @staticmethod
+    def is_rectangle(img: 'Image') -> bool:
+        return img.count() == img.w * img.h
+
+    def count_components_dfs(self, r: int, c: int):
+        self[r, c] = 0
+        for nr in range(r - 1, r + 2):
+            for nc in range(c - 1, c + 2):
+                if 0 <= nr < self.h and 0 <= nc < self.w and self[nr, nc]:
+                    self.count_components_dfs(nr, nc)
+
+    def count_components(self) -> int:
+        img_copy = self.mask.copy()
+        ans = 0
+        for i in range(self.h):
+            for j in range(self.w):
+                if img_copy[i, j]:
+                    self.count_components_dfs(i, j)
+                    ans += 1
+        self.mask = img_copy  # Restore the original mask
+        return ans
+
+    def majority_col(self, include0: int = 0) -> int:
+        unique, counts = np.unique(self.mask, return_counts=True)
+        if not include0:
+            zero_index = np.where(unique == 0)[0]
+            if zero_index.size > 0:
+                counts[zero_index[0]] = 0
+        return unique[np.argmax(counts)]
+
+    def sub_image(self, p: Point, sz: Point) -> 'Image':
+        assert p.x >= 0 and p.y >= 0 and p.x + sz.x <= self.w and p.y + sz.y <= self.h and sz.x >= 0 and sz.y >= 0
+        ret = Image(p.x + self.x, p.y + self.y, sz.x, sz.y)
+        ret.mask = self.mask[p.y:p.y+sz.y, p.x:p.x+sz.x].copy()
+        return ret
+
+    def split_cols(self, include0: int = 0) -> List[Tuple['Image', int]]:
+        ret = []
+        mask = self.col_mask()
+        for c in range(int(not include0), 10):
+            if mask >> c & 1:
+                s = Image(self.x, self.y, self.w, self.h)
+                s.mask = (self.mask == c).astype(np.int8)
+                ret.append((s, c))
+        return ret
 
     def hash_image(self):
         base = 137
