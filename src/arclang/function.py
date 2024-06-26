@@ -1,7 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import namedtuple
-from arclang.image import Image, Point
 from typing import List, Tuple, Callable
+
+from arclang.image import Image, Point
 
 def col(id: int) -> Image:
     assert 0 <= id < 10
@@ -180,6 +182,22 @@ def compose_id(a: Image, b: Image, id: int = 0) -> Image:
     else:
         assert 0 <= id < 5
         return Image()  # bad image
+    
+def compose_list(imgs: List[Image], overlap_only: int) -> Image:
+    if not imgs:
+        return Image()
+    result = imgs[0]
+    for img in imgs[1:]:
+        result = compose_id(result, img,overlap_only)
+    return result
+
+def compose_list_f(imgs: List[Image], f: Callable[[int, int], int], overlap_only: int) -> Image:
+    if not imgs:
+        return Image()
+    result = imgs[0]
+    for img in imgs[1:]:
+        result = compose(result, img,f,overlap_only)
+    return result
 
 def outer_product_is(a: Image, b: Image) -> Image:
     if a.w * b.w > 100 or a.h * b.h > 100 or a.w * b.w * a.h * b.h > 1600:
@@ -359,7 +377,45 @@ def replace_cols(base: Image, cols: Image) -> Image:
 def center(img: Image) -> Image:
     sz_x = (img.w + 1) % 2 + 1
     sz_y = (img.h + 1) % 2 + 1
-    return Image(img.x + (img.w - sz_x) // 2, img.y + (img.h - sz_y) // 2, sz_x, sz_y)
+    center_x = img.x + (img.w - sz_x) // 2
+    center_y = img.y + (img.h - sz_y) // 2
+    
+    center_img = Image(center_x, center_y, sz_x, sz_y)
+    for i in range(sz_y):
+        for j in range(sz_x):
+            center_img[i, j] = img[center_y - img.y + i, center_x - img.x + j]
+    
+    return center_img
+
+def visualize_transformation(original: Image, transformed: Image, 
+                             title: str = "Image Transformation",
+                             original_title: str = "Original",
+                             transformed_title: str = "Transformed"):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    
+    # Display original image
+    ax1.imshow(original.mask, cmap='viridis')
+    ax1.set_title(f"{original_title} ({original.w}x{original.h})")
+    ax1.axis('off')
+    
+    # Create a full-size array for the transformed image
+    full_size = np.zeros((max(original.h, transformed.y + transformed.h) - min(0, transformed.y),
+                          max(original.w, transformed.x + transformed.w) - min(0, transformed.x)))
+    
+    # Calculate the offset for the transformed image
+    y_start, x_start = transformed.y - min(0, transformed.y), transformed.x - min(0, transformed.x)
+    
+    # Place the transformed image in the full-size array
+    full_size[y_start:y_start+transformed.h, x_start:x_start+transformed.w] = transformed.mask
+    
+    # Display transformed image
+    ax2.imshow(full_size, cmap='viridis')
+    ax2.set_title(f"{transformed_title} ({transformed.w}x{transformed.h})")
+    ax2.axis('off')
+    
+    plt.suptitle(title)
+    plt.tight_layout()
+    plt.show()
 
 def transform(img: Image, A00: int, A01: int, A10: int, A11: int) -> Image:
     if img.w * img.h == 0:
@@ -398,7 +454,7 @@ def mirror_heuristic(img: Image) -> bool:
 
 def rigid(img: Image, id: int) -> Image:
     if id == 0:
-        return img
+        return img.copy()
     elif id == 1:
         return transform(img, 0, 1, -1, 0)  # CCW
     elif id == 2:
@@ -425,7 +481,7 @@ def invert(img: Image) -> Image:
         return img
     mask = img.col_mask()
     col = 1
-    while col < 10 and not (mask & (1 << col)):
+    while col < 10 and not (mask & (1 <<  np.int64(col))):
         col += 1
     if col == 10:
         col = 1
@@ -436,3 +492,341 @@ def invert(img: Image) -> Image:
 
 def maj_col(img: Image) -> Image:
     return col(img.majority_col())
+
+
+def interior2(a: Image) -> Image:
+    return compose_id(a, invert(border(a)), 2)
+
+def count(img: Image, id: int, out_type: int) -> Image:
+    assert 0 <= id < 7 and 0 <= out_type < 3
+    if id == 0: num = img.count() 
+    elif id == 1: num = img.count_cols()
+    elif id == 2: num = img.count_components()
+    elif id == 3: num = img.w
+    elif id == 4: num = img.h
+    elif id == 5: num = max(img.w, img.h)
+    elif id == 6: num = min(img.w, img.h)
+
+    if out_type == 0:
+        sz = Point(num, num) 
+    elif (out_type == 1):
+        sz = Point(num, 1)
+    elif (out_type == 2):
+        sz = Point(1, num)
+
+    if max(sz.x, sz.y) > 100 or sz.x * sz.y > 1600:
+        return Image()  # bad image
+    return Image.full(Point(0, 0), sz, img.majority_col())
+
+def wrap(line: Image, area: Image) -> Image:
+    if line.w * line.h == 0 or area.w * area.h == 0:
+        return Image()  # bad image
+    ans = Image(0, 0, area.w, area.h)
+    for i in range(line.h):
+        for j in range(line.w):
+            x, y = j, i
+            x += y // area.h * line.w
+            y %= area.h
+            y += x // area.w * line.h
+            x %= area.w
+            if 0 <= x < ans.w and 0 <= y < ans.h:
+                ans[y, x] = line[i, j]
+    return ans
+
+def smear(base: Image, room: Image, id: int) -> Image:
+    assert 0 <= id < 7
+    mask = [1, 2, 4, 8, 3, 12, 15][id]
+    d = Point(room.x - base.x, room.y - base.y)
+    ret = embed(base, hull(room))
+    
+    def smear_direction(range_i, range_j, condition):
+        for i in range_i:
+            c = 0
+            for j in range_j:
+                if not room[i, j]: c = 0
+                elif base.safe(i + d.y, j + d.x): c = base[i + d.y, j + d.x]
+                if c and condition(i, j): ret[i, j] = c
+
+    if mask & 1: smear_direction(range(ret.h), range(ret.w), lambda i, j: True)
+    if mask & 2: smear_direction(range(ret.h), range(ret.w - 1, -1, -1), lambda i, j: True)
+    if mask & 4: smear_direction(range(ret.w), range(ret.h), lambda i, j: True)
+    if mask & 8: smear_direction(range(ret.w), range(ret.h - 1, -1, -1), lambda i, j: True)
+    
+    return ret
+
+def extend(img: Image, room: Image) -> Image:
+    if img.w * img.h == 0:
+        return Image()  # bad image
+    ret = room.copy()
+    for i in range(ret.h):
+        for j in range(ret.w):
+            x = max(0, min(j+room.x - img.x, img.w - 1))
+            y = max(0, min(i + room.y - img.y, img.h - 1))
+            ret[i, j] = img[y, x]
+    return ret
+
+def pick_max(v: List[Image], f: Callable[[Image], int]) -> Image:
+    if not v:
+        return Image()  # bad image
+    return max(v, key=f)
+
+def max_criterion(img: Image, id: int) -> int:
+    assert 0 <= id < 14
+    if id == 0: return img.count()
+    elif id == 1: return -img.count()
+    elif id == 2: return img.w * img.h
+    elif id == 3: return -img.w * img.h
+    elif id == 4: return img.count_cols()
+    elif id == 5: return -img.y
+    elif id == 6: return img.y
+    elif id == 7: return img.count_components()
+    elif id in (8, 9):
+        comp = compress(img)
+        return (comp.w * comp.h - comp.count()) * (-1 if id == 9 else 1)
+    elif id in (10, 11):
+        return img.count_interior() * (-1 if id == 11 else 1)
+    elif id == 12: return -img.x
+    elif id == 13: return img.x
+
+def cut(img: Image, a: Image) -> List[Image]:
+    ret = []
+    done = Image.empty(img.x, img.y, img.w, img.h)
+    d = Point(img.x - a.x, img.y - a.y)
+    
+    def dfs(r: int, c: int, toadd: Image):
+        if r < 0 or r >= img.h or c < 0 or c >= img.w or a.safe(r + d.y, c + d.x) or done[r, c]:
+            return
+        toadd[r, c] = img[r, c] + 1
+        done[r, c] = 1
+        for nr in (r-1, r, r+1):
+            for nc in (c-1, c, c+1):
+                dfs(nr, nc, toadd)
+
+    for i in range(img.h):
+        for j in range(img.w):
+            if not done[i, j] and not a.safe(i + d.y, j + d.x):
+                toadd = Image.empty(img.x, img.y, img.w, img.h)
+                dfs(i, j, toadd)
+                toadd = compress(toadd)
+                toadd.mask = np.maximum(toadd.mask - 1, 0)
+                ret.append(toadd)
+    return ret
+
+def split_cols(img: Image, include0: int = 0) -> List[Image]:
+    ret = []
+    mask = img.col_mask()
+    for c in range(int(not include0), 10):
+        if mask & (1 <<  np.int64(c)):
+            s = img.copy()
+            s.mask = np.where(s.mask == c, c, 0)
+            ret.append(s)
+    return ret
+
+def get_regular(img: Image) -> Image:
+    ret = img.copy()
+    col = [1] * img.w
+    row = [1] * img.h
+    for i in range(img.h):
+        for j in range(img.w):
+            if img[i, j] != img[i, 0]: row[i] = 0
+            if img[i, j] != img[0, j]: col[j] = 0
+    
+    def get_regular_1d(arr):
+        for w in range(1, len(arr)):
+            s = -1
+            if len(arr) % (w + 1) == w: s = w
+            elif len(arr) % (w + 1) == 1: s = 0
+            if s != -1 and all(arr[i] == (i % (w + 1) == s) for i in range(len(arr))):
+                return
+        arr[:] = [0] * len(arr)
+
+    get_regular_1d(col)
+    get_regular_1d(row)
+    
+    for i in range(img.h):
+        for j in range(img.w):
+            ret[i, j] = row[i] or col[j]
+    return ret
+
+def cut_pick_max(a: Image, b: Image, id: int) -> Image:
+    return pick_max(cut(a, b), lambda img: max_criterion(img, id))
+
+def regular_cut_pick_max(a: Image, id: int) -> Image:
+    b = get_regular(a)
+    return cut_pick_max(a, b, id)
+
+def split_pick_max(a: Image, id: int, include0: int = 0) -> Image:
+    return pick_max(split_cols(a, include0), lambda img: max_criterion(img, id))
+
+def cut_compose(a: Image, b: Image, id: int) -> Image:
+    v = cut(a, b)
+    return compose_list([to_origin(img) for img in v], id)
+
+def regular_cut_compose(a: Image, id: int) -> Image:
+    b = get_regular(a)
+    return cut_compose(a, b, id)
+
+def split_compose(a: Image, id: int, include0: int = 0) -> Image:
+    v = split_cols(a, include0)
+    return compose_list([to_origin(compress(img)) for img in v], id)
+
+def cut_index(a: Image, b: Image, ind: int) -> Image:
+    v = cut(a, b)
+    return v[ind] if 0 <= ind < len(v) else Image()
+
+def pick_maxes(v: List[Image], f: Callable[[Image], int], invert: int = 0) -> List[Image]:
+    if not v:
+        return []
+    scores = [f(img) for img in v]
+    max_score = max(scores)
+    return [img for img, score in zip(v, scores) if (score == max_score) ^ invert]
+
+def pick_not_maxes(v: List[Image], id: int) -> List[Image]:
+    return pick_maxes(v, lambda img: max_criterion(img, id), 1)
+
+def cut_pick_maxes(a: Image, b: Image, id: int) -> Image:
+    return compose_list(pick_maxes(cut(a, b), lambda img: max_criterion(img, id)), 0)
+
+def split_pick_maxes(a: Image, id: int) -> Image:
+    return compose_list(pick_maxes(split_cols(a), lambda img: max_criterion(img, id)), 0)
+
+def heuristic_cut(img: Image) -> Image:
+    ret = img.majority_col(include0=1)
+    ret_score = -1
+    mask = img.col_mask()
+    done = Image.empty(img.x, img.y, img.w, img.h)
+    
+    def edgy(r: int, c: int, col: int):
+        if r < 0 or r >= img.h or c < 0 or c >= img.w or img[r, c] != col or done[r, c]:
+            return
+        done[r, c] = 1
+        for nr in (r-1, r, r+1):
+            for nc in (c-1, c, c+1):
+                edgy(nr, nc, col)
+
+    for col in range(10):
+        if not (mask & (1 << np.int64(col))):
+            continue
+        done.mask.fill(0)
+        top = bot = left = right = False
+        for i in range(img.h):
+            for j in range(img.w):
+                if img[i, j] == col:
+                    if i == 0: top = True
+                    if j == 0: left = True
+                    if i == img.h - 1: bot = True
+                    if j == img.w - 1: right = True
+                if (i in (0, img.h - 1) or j in (0, img.w - 1)) and img[i, j] == col and not done[i, j]:
+                    edgy(i, j, col)
+        
+        if not ((top and bot) or (left and right)):
+            continue
+
+        score = float('inf')
+        components = 0
+        no_contained = True
+        for i in range(img.h):
+            for j in range(img.w):
+                if not done[i, j] and img[i, j] != col:
+                    cnt = 0
+                    contained = True
+                    stack = [(i, j)]
+                    while stack:
+                        r, c = stack.pop()
+                        if r < 0 or r >= img.h or c < 0 or c >= img.w:
+                            continue
+                        if img[r, c] == col:
+                            if done[r, c]:
+                                contained = False
+                            continue
+                        if done[r, c]:
+                            continue
+                        cnt += 1
+                        done[r, c] = 1
+                        stack.extend([(r-1, c), (r+1, c), (r, c-1), (r, c+1)])
+                    components += 1
+                    score = min(score, cnt)
+                    if contained:
+                        no_contained = False
+        if components >= 2 and no_contained and score > ret_score:
+            ret_score = score
+            ret = col
+    return filter_col_id(img, ret)
+
+
+
+
+def my_stack(a: Image, b: Image, orient: int) -> Image:
+    assert 0 <= orient <= 3
+    b.x, b.y = a.x, a.y
+    if orient == 0:  # Horizontal
+        b.x += a.w
+    elif orient == 1:  # Vertical
+        b.y += a.h
+    elif orient == 2:  # Diagonal
+        b.x += a.w
+        b.y += a.h
+    else:  # Other diagonal, bottom-left / top-right
+        c = a.copy()
+        c.y += b.h
+        b.x += a.w
+        return compose_id(c, b, 0)
+    return compose_id(a, b, 0)
+
+
+def wrap(line: Image, area: Image) -> Image:
+    if line.w * line.h == 0 or area.w * area.h == 0:
+        return Image()  # bad image
+    ans = Image.empty(0, 0, area.w, area.h)
+    for i in range(line.h):
+        for j in range(line.w):
+            x, y = j, i
+            x += y // area.h * line.w
+            y %= area.h
+            y += x // area.w * line.h
+            x %= area.w
+            if 0 <= x < ans.w and 0 <= y < ans.h:
+                ans[y, x] = line[i, j]
+    return ans
+
+def repeat(a: Image, b: Image, pad: int = 0) -> Image:
+    if a.w * a.h <= 0 or b.w * b.h <= 0:
+        return Image()  # bad image
+    ret = Image.empty(b.x, b.y, b.w, b.h)
+    W, H = a.w + pad, a.h + pad
+    ai = ((b.y - a.y) % H + H) % H
+    aj0 = ((b.x - a.x) % W + W) % W
+    for i in range(ret.h):
+        aj = aj0
+        for j in range(ret.w):
+            if ai < a.h and aj < a.w:
+                ret[i, j] = a[ai, aj]
+            aj = (aj + 1) % W
+        ai = (ai + 1) % H
+    return ret
+
+def mirror(a: Image, b: Image, pad: int = 0) -> Image:
+    if a.w * a.h <= 0 or b.w * b.h <= 0:
+        return Image()  # bad image
+    ret = Image.empty(b.x, b.y, b.w, b.h)
+    W, H = a.w + pad, a.h + pad
+    W2, H2 = W * 2, H * 2
+    ai = ((b.y - a.y) % H2 + H2) % H2
+    aj0 = ((b.x - a.x) % W2 + W2) % W2
+    for i in range(ret.h):
+        aj = aj0
+        for j in range(ret.w):
+            x, y = -1, -1
+            if aj < a.w:
+                x = aj
+            elif W <= aj < W + a.w:
+                x = W + a.w - 1 - aj
+            if ai < a.h:
+                y = ai
+            elif H <= ai < H + a.h:
+                y = H + a.h - 1 - ai
+            if x != -1 and y != -1:
+                ret[i, j] = a[y, x]
+            aj = (aj + 1) % W2
+        ai = (ai + 1) % H2
+    return ret

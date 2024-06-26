@@ -241,3 +241,291 @@ class TestImageFunctions(unittest.TestCase):
         result = align_images(a, b)
         self.assertEqual(result.x, 2)
         self.assertEqual(result.y, 2)
+
+    def test_center(self):
+    # Create a 5x5 image with a distinct pattern
+        img = Image(0, 0, 5, 5, [
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 2, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ])
+
+        result = center(img)
+
+        # The center should be a 1x1 image containing the center pixel
+        self.assertEqual(result.w, 1)
+        self.assertEqual(result.h, 1)
+        self.assertEqual(result[0, 0], 2)  # The center pixel value
+
+        # Check that the position is correct
+        self.assertEqual(result.x, img.x + 2)  # Centered horizontally
+        self.assertEqual(result.y, img.y + 2)  # Centered vertically
+
+        # Test with an even-sized image
+        img_even = Image(1, 1, 4, 4, [
+            [1, 1, 2, 2],
+            [1, 1, 2, 2],
+            [3, 3, 4, 4],
+            [3, 3, 4, 4]
+        ])
+
+        result_even = center(img_even)
+
+        # For even-sized images, we expect a 2x2 center
+        self.assertEqual(result_even.w, 2)
+        self.assertEqual(result_even.h, 2)
+        self.assertTrue(np.array_equal(result_even.mask, [[1, 2], [3, 4]]))
+
+        # Check that the position is correct
+        self.assertEqual(result_even.x, img_even.x + 1)
+        self.assertEqual(result_even.y, img_even.y + 1)
+
+    def test_transform(self):
+        img = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        # Test rotation by 90 degrees clockwise
+        result = transform(img, 0, -1, 1, 0)
+        expected = np.array([[3, 1], [4, 2]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_mirror_heuristic(self):
+        img1 = Image(0, 0, 3, 2, [[1, 1, 1], [0, 0, 0]])
+        img2 = Image(0, 0, 2, 3, [[1, 0], [1, 0], [1, 0]])
+        self.assertTrue(mirror_heuristic(img1))
+        self.assertFalse(mirror_heuristic(img2))
+
+    def test_rigid(self):
+        img = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        # Test identity transformation
+        result = rigid(img, 0)
+        self.assertTrue(np.array_equal(result.mask, img.mask))
+        # Test 90 degree rotation
+        result = rigid(img, 1)
+        expected = np.array([[3, 1], [4, 2]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_invert(self):
+        img = Image(0, 0, 2, 2, [[1, 0], [0, 1]])
+        result = invert(img)
+        expected = np.array([[0, 1], [1, 0]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_interior2(self):
+        a = Image(0, 0, 3, 3, [[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+        result = interior2(a)
+        expected = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_my_stack(self):
+        a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        b = Image(0, 0, 2, 2, [[5, 6], [7, 8]])
+        result = my_stack(a, b, 0)  # Horizontal stacking
+        expected = np.array([[1, 2, 5, 6], [3, 4, 7, 8]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_wrap(self):
+        line = Image(0, 0, 4, 1, [[1, 2, 3, 4]])
+        area = Image(0, 0, 2, 2)
+        result = wrap(line, area)
+        expected = np.array([[1, 2], [3, 4]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_smear(self):
+        base = Image(0, 0, 2, 2, [[1, 2], [0, 0]])
+        room = Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        result = smear(base, room, 0)  # Smear to the right
+        expected = np.array([[1, 2, 2], [0, 0, 0], [0, 0, 0]])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_extend(self):
+        img = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        room = Image(-1, -1, 4, 4)
+        result = extend(img, room)
+        expected = np.array([
+            [1, 1, 2, 2],
+            [1, 1, 2, 2],
+            [3, 3, 4, 4],
+            [3, 3, 4, 4]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_pick_max(self):
+        imgs = [
+            Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
+            Image(0, 0, 1, 1, [[1]])
+        ]
+        result = pick_max(imgs, lambda img: img.w * img.h)
+        self.assertEqual(result.w, 3)
+        self.assertEqual(result.h, 3)
+
+    def test_max_criterion(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 3], [0, 1, 2], [3, 0, 1]])
+        result = max_criterion(img, 0)  # Count non-zero elements
+        self.assertEqual(result, 8)
+
+    def test_cut(self):
+        img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
+        mask = Image(0, 0, 3, 3, [[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        result = cut(img, mask)
+        self.assertEqual(len(result), 4)
+        self.assertTrue(all(piece.count() == 1 for piece in result))
+
+    def test_split_cols(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
+        result = split_cols(img, 0)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(all(piece.count_cols() == 1 for piece in result))
+
+    def test_get_regular(self):
+        img = Image(0, 0, 4, 4, [
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1]
+        ])
+        result = get_regular(img)
+        expected = np.array([
+            [1, 1, 1, 1],
+            [1, 1, 1, 1],
+            [1, 1, 1, 1],
+            [1, 1, 1, 1]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_cut_pick_max(self):
+        img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
+        mask = Image(0, 0, 3, 3, [[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        result = cut_pick_max(img, mask, 0)  # Pick largest piece
+        self.assertEqual(result.count(), 2)
+
+    def test_regular_cut_pick_max(self):
+        img = Image(0, 0, 4, 4, [
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1]
+        ])
+        result = regular_cut_pick_max(img, 0)  # Pick largest piece
+        self.assertEqual(result.count(), 8)
+
+    def test_split_pick_max(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
+        result = split_pick_max(img, 0, 0)  # Pick color with most pixels
+        self.assertEqual(result.count(), 5)
+
+    def test_regular_cut_compose(self):
+        img = Image(0, 0, 4, 4, [
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1]
+        ])
+        result = regular_cut_compose(img, 0)
+        self.assertEqual(result.count(), 8)
+
+    def test_split_compose(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
+        result = split_compose(img, 0, 0)
+        self.assertEqual(result.count(), 9)
+
+    def test_cut_index(self):
+        img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
+        mask = Image(0, 0, 3, 3, [[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        result = cut_index(img, mask, 0)
+        self.assertEqual(result.count(), 1)
+
+    def test_pick_maxes(self):
+        imgs = [
+            Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        ]
+        result = pick_maxes(imgs, lambda img: img.w * img.h)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all(img.w == 3 and img.h == 3 for img in result))
+
+    def test_pick_not_maxes(self):
+        imgs = [
+            Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+        ]
+        result = pick_not_maxes(imgs, 0)  # Use area as criterion
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].w, 2)
+        self.assertEqual(result[0].h, 2)
+
+    def test_cut_pick_maxes(self):
+        img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
+        mask = Image(0, 0, 3, 3, [[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        result = cut_pick_maxes(img, mask, 0)  # Pick largest pieces
+        self.assertEqual(result.count(), 4)
+
+    def test_split_pick_maxes(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
+        result = split_pick_maxes(img, 0)  # Pick colors with most pixels
+        self.assertEqual(result.count(), 9)
+
+    def test_heuristic_cut(self):
+        img = Image(0, 0, 3, 3, [[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+        result = heuristic_cut(img)
+        self.assertEqual(result.count(), 8)
+
+    def test_repeat(self):
+        a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        b = Image(0, 0, 4, 4)
+        result = repeat(a, b)
+        expected = np.array([
+            [1, 2, 1, 2],
+            [3, 4, 3, 4],
+            [1, 2, 1, 2],
+            [3, 4, 3, 4]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_mirror(self):
+        a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        b = Image(0, 0, 4, 4)
+        result = mirror(a, b)
+        expected = np.array([
+            [1, 2, 2, 1],
+            [3, 4, 4, 3],
+            [3, 4, 4, 3],
+            [1, 2, 2, 1]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_maj_col(self):
+        img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 1, 2], [1, 2, 1]])
+        result = maj_col(img)
+        self.assertEqual(result.w, 1)
+        self.assertEqual(result.h, 1)
+        self.assertEqual(result[0, 0], 1)
+
+    def test_repeat_with_pad(self):
+        a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        b = Image(0, 0, 5, 5)
+        result = repeat(a, b, pad=1)
+        expected = np.array([
+            [1, 2, 0, 1, 2],
+            [3, 4, 0, 3, 4],
+            [0, 0, 0, 0, 0],
+            [1, 2, 0, 1, 2],
+            [3, 4, 0, 3, 4]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))
+
+    def test_mirror_with_pad(self):
+        a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
+        b = Image(0, 0, 5, 5)
+        result = mirror(a, b, pad=1)
+        expected = np.array([
+            [1, 2, 0, 2, 1],
+            [3, 4, 0, 4, 3],
+            [0, 0, 0, 0, 0],
+            [3, 4, 0, 4, 3],
+            [1, 2, 0, 2, 1]
+        ])
+        self.assertTrue(np.array_equal(result.mask, expected))

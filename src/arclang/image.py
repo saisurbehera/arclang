@@ -1,7 +1,7 @@
 import numpy as np
 from functools import reduce
-from typing import List, Tuple
 from collections import namedtuple
+from typing import List, Tuple, Union
 
 MAXSIDE = 100
 MAXAREA = 40 * 40
@@ -113,7 +113,9 @@ class Image:
             zero_index = np.where(unique == 0)[0]
             if zero_index.size > 0:
                 counts[zero_index[0]] = 0
-        return unique[np.argmax(counts)]
+        if counts.size == 0 or np.max(counts) == 0:
+            return 0  # Return 0 if all colors were excluded or the image is empty
+        return int(unique[np.argmax(counts)])
 
     def sub_image(self, p: Point, sz: Point) -> 'Image':
         assert p.x >= 0 and p.y >= 0 and p.x + sz.x <= self.w and p.y + sz.y <= self.h and sz.x >= 0 and sz.y >= 0
@@ -142,6 +144,15 @@ class Image:
             r = (r * base + int(c)) % 2**64
         return r
 
+    @staticmethod
+    def empty_p2(p: Union[Point, int], sz: Union[Point, int], h: int = None) -> 'Image':
+        if isinstance(p, Point) and isinstance(sz, Point):
+            return Image(p.x, p.y, sz.x, sz.y)
+        elif isinstance(p, int) and isinstance(sz, int) and h is not None:
+            return Image(p, sz, sz, h)
+        else:
+            raise ValueError("Invalid arguments for Image.empty")
+    
 class Piece:
     def __init__(self, imgs=None, node_prob=0.0, keepi=0, knowi=0):
         if imgs is None:
