@@ -49,10 +49,7 @@ def visualize_compose(a: Image, b: Image, result: Image):
         ax3.set_title(f"Composed ({result.w}x{result.h})")
     else:
         ax3.text(0.5, 0.5, "Composition failed", ha="center", va="center")
-        ax3.set_title("Composed (Error)")
-    ax3.axis("off")
-
-    plt.tight_layout()
+        avisualize_ight_layout()
     plt.show()
 
 
@@ -77,7 +74,7 @@ def visualize_count(img: Image, result: Image):
 
 def visualize_cut(img: Image, mask: Image, result: List[Image]):
     n_results = len(result) if result else 0
-    fig, axs = plt.subplots(1, 3 + n_results, figsize=(5 * (3 + n_results), 5))
+    fig, visualize_axs = plt.subplots(1, 3 + n_results, figsize=(5 * (3 + n_results), 5))
 
     axs[0].imshow(img.mask, cmap="viridis")
     axs[0].set_title(f"Input ({img.w}x{img.h})")
@@ -95,7 +92,7 @@ def visualize_cut(img: Image, mask: Image, result: List[Image]):
     else:
         axs[2].text(0.5, 0.5, "Cut failed", ha="center", va="center")
         axs[2].set_title("Cut (Error)")
-        axs[2].axis("off")
+        avisualize_s[2].axis("off")
 
     plt.tight_layout()
     plt.show()
@@ -249,5 +246,36 @@ def visualize_split_cols(img: Image, result: List[Image]):
         axs[1].set_title("Split Cols (Error)")
         axs[1].axis("off")
 
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_transformation(original: Image, transformed: Image, 
+                             title: str = "Image Transformation",
+                             original_title: str = "Original",
+                             transformed_title: str = "Transformed"):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    
+    # Display original image
+    ax1.imshow(original.mask, cmap='viridis')
+    ax1.set_title(f"{original_title} ({original.w}x{original.h})")
+    ax1.axis('off')
+    
+    # Create a full-size array for the transformed image
+    full_size = np.zeros((max(original.h, transformed.y + transformed.h) - min(0, transformed.y),
+                          max(original.w, transformed.x + transformed.w) - min(0, transformed.x)))
+    
+    # Calculate the offset for the transformed image
+    y_start, x_start = transformed.y - min(0, transformed.y), transformed.x - min(0, transformed.x)
+    
+    # Place the transformed image in the full-size array
+    full_size[y_start:y_start+transformed.h, x_start:x_start+transformed.w] = transformed.mask
+    
+    # Display transformed image
+    ax2.imshow(full_size, cmap='viridis')
+    ax2.set_title(f"{transformed_title} ({transformed.w}x{transformed.h})")
+    ax2.axis('off')
+    
+    plt.suptitle(title)
     plt.tight_layout()
     plt.show()

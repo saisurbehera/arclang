@@ -387,35 +387,7 @@ def center(img: Image) -> Image:
     
     return center_img
 
-def visualize_transformation(original: Image, transformed: Image, 
-                             title: str = "Image Transformation",
-                             original_title: str = "Original",
-                             transformed_title: str = "Transformed"):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-    
-    # Display original image
-    ax1.imshow(original.mask, cmap='viridis')
-    ax1.set_title(f"{original_title} ({original.w}x{original.h})")
-    ax1.axis('off')
-    
-    # Create a full-size array for the transformed image
-    full_size = np.zeros((max(original.h, transformed.y + transformed.h) - min(0, transformed.y),
-                          max(original.w, transformed.x + transformed.w) - min(0, transformed.x)))
-    
-    # Calculate the offset for the transformed image
-    y_start, x_start = transformed.y - min(0, transformed.y), transformed.x - min(0, transformed.x)
-    
-    # Place the transformed image in the full-size array
-    full_size[y_start:y_start+transformed.h, x_start:x_start+transformed.w] = transformed.mask
-    
-    # Display transformed image
-    ax2.imshow(full_size, cmap='viridis')
-    ax2.set_title(f"{transformed_title} ({transformed.w}x{transformed.h})")
-    ax2.axis('off')
-    
-    plt.suptitle(title)
-    plt.tight_layout()
-    plt.show()
+
 
 def transform(img: Image, A00: int, A01: int, A10: int, A11: int) -> Image:
     if img.w * img.h == 0:
