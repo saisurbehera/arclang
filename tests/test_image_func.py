@@ -312,10 +312,34 @@ class TestImageFunctions(unittest.TestCase):
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_interior2(self):
-        a = Image(0, 0, 3, 3, [[1, 1, 1], [1, 0, 1], [1, 1, 1]])
-        result = interior2(a)
-        expected = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-        self.assertTrue(np.array_equal(result.mask, expected))
+        img = Image(
+            0,
+            0,
+            5,
+            5,
+            [
+                [1, 1, 1, 0, 0],
+                [1, 2, 2, 0, 0],
+                [1, 2, 2, 3, 3],
+                [0, 0, 3, 3, 3],
+                [0, 0, 3, 3, 3],
+            ],
+        )
+        result = interior2(img)
+        expected = Image(
+            0,
+            0,
+            5,
+            5,
+            [
+                [0, 0, 0, 0, 0],
+                [0, 2, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 3, 0],
+                [0, 0, 0, 0, 0],
+            ],
+        )
+        self.assertTrue(np.array_equal(result.mask, expected.mask))
 
     def test_my_stack(self):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
@@ -363,7 +387,7 @@ class TestImageFunctions(unittest.TestCase):
     def test_max_criterion(self):
         img = Image(0, 0, 3, 3, [[1, 2, 3], [0, 1, 2], [3, 0, 1]])
         result = max_criterion(img, 0)  # Count non-zero elements
-        self.assertEqual(result, 8)
+        self.assertEqual(result, 7)
 
     def test_cut(self):
         img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
@@ -386,19 +410,26 @@ class TestImageFunctions(unittest.TestCase):
             [0, 1, 0, 1]
         ])
         result = get_regular(img)
-        expected = np.array([
-            [1, 1, 1, 1],
-            [1, 1, 1, 1],
-            [1, 1, 1, 1],
-            [1, 1, 1, 1]
-        ])
+        expected = np.zeros((4,4))
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_cut_pick_max(self):
-        img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
-        mask = Image(0, 0, 3, 3, [[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        img = Image(0,0,5,5,[
+            [1, 1, 1, 0, 0],
+            [1, 2, 2, 0, 0],
+            [1, 2, 2, 3, 3],
+            [0, 0, 3, 3, 3],
+            [0, 0, 3, 3, 3]
+        ])
+        mask = Image(0,0,5,5,[
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 1, 1, 2, 2],
+            [0, 0, 2, 2, 2],
+            [0, 0, 2, 2, 2]
+        ])
         result = cut_pick_max(img, mask, 0)  # Pick largest piece
-        self.assertEqual(result.count(), 2)
+        self.assertEqual(result.count(), 5)
 
     def test_regular_cut_pick_max(self):
         img = Image(0, 0, 4, 4, [
@@ -413,7 +444,7 @@ class TestImageFunctions(unittest.TestCase):
     def test_split_pick_max(self):
         img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
         result = split_pick_max(img, 0, 0)  # Pick color with most pixels
-        self.assertEqual(result.count(), 5)
+        self.assertEqual(result.count(), 4)
 
     def test_regular_cut_compose(self):
         img = Image(0, 0, 4, 4, [
@@ -428,7 +459,7 @@ class TestImageFunctions(unittest.TestCase):
     def test_split_compose(self):
         img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
         result = split_compose(img, 0, 0)
-        self.assertEqual(result.count(), 9)
+        self.assertEqual(result.count(), 8)
 
     def test_cut_index(self):
         img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 0, 0], [1, 0, 1]])
@@ -466,7 +497,7 @@ class TestImageFunctions(unittest.TestCase):
     def test_split_pick_maxes(self):
         img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 3, 2], [1, 2, 1]])
         result = split_pick_maxes(img, 0)  # Pick colors with most pixels
-        self.assertEqual(result.count(), 9)
+        self.assertEqual(result.count(), 8)
 
     def test_heuristic_cut(self):
         img = Image(0, 0, 3, 3, [[1, 1, 1], [1, 0, 1], [1, 1, 1]])

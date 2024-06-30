@@ -93,6 +93,31 @@ def display_matrix(matrix):
     plt.show()
 
 
+def display_matrix_term(matrix):
+    # ANSI color codes
+    colors = [
+        "\033[40m",  # black
+        "\033[44m",  # blue
+        "\033[41m",  # red
+        "\033[42m",  # green
+        "\033[43m",  # yellow
+        "\033[47m",  # grey
+        "\033[45m",  # magenta
+        "\033[48;5;208m",  # orange
+        "\033[46m",  # cyan
+        "\033[48;5;52m",  # brown
+    ]
+    reset = "\033[0m"
+
+    print("Matrix:")
+    for row in matrix.mask:
+        for value in row:
+            color = colors[value % len(colors)]
+            print(f"{color}  {reset}", end="")
+        print()
+    print()
+
+
 def read_json(file):
     with open(file) as f:
         data = json.load(f)

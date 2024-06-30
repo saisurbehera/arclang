@@ -428,7 +428,7 @@ def rigid(img: Image, id: int) -> Image:
     if id == 0:
         return img.copy()
     elif id == 1:
-        return transform(img, 0, 1, -1, 0)  # CCW
+        return transform(img, 0, -1, 1, 0)  # CCW
     elif id == 2:
         return transform(img, -1, 0, 0, -1)  # 180
     elif id == 3:
@@ -594,30 +594,39 @@ def split_cols(img: Image, include0: int = 0) -> List[Image]:
             ret.append(s)
     return ret
 
+def get_regular_1d(col: List[int]) -> None:
+    colw = len(col)
+    for w in range(1, colw):
+        s = -1
+        if colw % (w + 1) == w:  # No outer border
+            s = w
+        elif colw % (w + 1) == 1:  # Outer border
+            s = 0
+        if s != -1:
+            if all(col[i] == (i % (w + 1) == s) for i in range(colw)):
+                return
+    col[:] = [0] * colw
+
 def get_regular(img: Image) -> Image:
+    # Look for regular grid division in single color
     ret = img.copy()
     col = [1] * img.w
     row = [1] * img.h
+
     for i in range(img.h):
         for j in range(img.w):
-            if img[i, j] != img[i, 0]: row[i] = 0
-            if img[i, j] != img[0, j]: col[j] = 0
-    
-    def get_regular_1d(arr):
-        for w in range(1, len(arr)):
-            s = -1
-            if len(arr) % (w + 1) == w: s = w
-            elif len(arr) % (w + 1) == 1: s = 0
-            if s != -1 and all(arr[i] == (i % (w + 1) == s) for i in range(len(arr))):
-                return
-        arr[:] = [0] * len(arr)
+            if img[i, j] != img[i, 0]:
+                row[i] = 0
+            if img[i, j] != img[0, j]:
+                col[j] = 0
 
     get_regular_1d(col)
     get_regular_1d(row)
-    
+
     for i in range(img.h):
         for j in range(img.w):
-            ret[i, j] = row[i] or col[j]
+            ret[i, j] = int(row[i] or col[j])
+
     return ret
 
 def cut_pick_max(a: Image, b: Image, id: int) -> Image:
@@ -645,6 +654,66 @@ def split_compose(a: Image, id: int, include0: int = 0) -> Image:
 def cut_index(a: Image, b: Image, ind: int) -> Image:
     v = cut(a, b)
     return v[ind] if 0 <= ind < len(v) else Image()
+
+def get_alternating(img: Image) -> Image:
+    ret = img.copy()
+    w, h = img.w, img.h
+
+    def is_alternating(arr):
+        return all(arr[i] != arr[i+1] for i in range(len(arr)-1))
+
+    # Check rows and columns
+    rows = [is_alternating([img[i, j] for j in range(w)]) for i in range(h)]
+    cols = [is_alternating([img[i, j] for i in range(h)]) for j in range(w)]
+    
+    # Combine results
+    for i in range(h):
+        for j in range(w):
+            ret[i, j] = int(rows[i] or cols[j])
+
+    return ret
+
+def get_constant(img: Image) -> Image:
+    ret = img.copy()
+    w, h = img.w, img.h
+
+    def is_constant(arr):
+        return all(x == arr[0] for x in arr)
+
+    # Check rows and columns
+    rows = [is_constant([img[i, j] for j in range(w)]) for i in range(h)]
+    cols = [is_constant([img[i, j] for i in range(h)]) for j in range(w)]
+    
+    # Combine results
+    for i in range(h):
+        for j in range(w):
+            ret[i, j] = int(rows[i] or cols[j])
+
+    return ret
+
+def get_repeating(img: Image, min_repetitions: int = 2) -> Image:
+    ret = img.copy()
+    w, h = img.w, img.h
+
+    def is_repeating(arr):
+        n = len(arr)
+        for period in range(1, n // 2 + 1):
+            if n % period == 0 and n // period >= min_repetitions:
+                pattern = arr[:period]
+                if arr == pattern * (n // period):
+                    return True
+        return False
+
+    # Check rows and columns
+    rows = [is_repeating([img[i, j] for j in range(w)]) for i in range(h)]
+    cols = [is_repeating([img[i, j] for i in range(h)]) for j in range(w)]
+    
+    # Combine results
+    for i in range(h):
+        for j in range(w):
+            ret[i, j] = int(rows[i] or cols[j])
+
+    return ret
 
 def pick_maxes(v: List[Image], f: Callable[[Image], int], invert: int = 0) -> List[Image]:
     if not v:
