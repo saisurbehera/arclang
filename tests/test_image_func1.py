@@ -1,6 +1,6 @@
+import unittest
 import numpy as np
 from typing import List, Tuple
-import unittest
 
 # Assuming the Image class and all ported functions are imported here
 from arclang.function import *
@@ -160,7 +160,7 @@ class TestImageFunctions(unittest.TestCase):
 
     def test_pick_unique(self):
         imgs = [self.img1, self.img2]
-        result = pick_unique(imgs, 0)
+        result = pick_unique(imgs)
         self.assertIsNotNone(result)
 
 if __name__ == '__main__':

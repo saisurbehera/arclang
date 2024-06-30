@@ -1,5 +1,5 @@
-import numpy as np
 import unittest
+import numpy as np
 from typing import List, Tuple
 from arclang.function import *
 
@@ -210,7 +210,7 @@ class TestImageFunctions2(unittest.TestCase):
             Image(0, 0, 2, 2, np.full((2, 2), 2)),
             Image(0, 0, 2, 2, np.array([[3, 3], [3, 4]]))
         ]
-        result = pick_unique(imgs, 0)
+        result = pick_unique(imgs)
         self.assertTrue(np.array_equal(result.mask, np.array([[3, 3], [3, 4]])))
     
     def test_greedy_fill(self):
