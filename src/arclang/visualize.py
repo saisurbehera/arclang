@@ -1,9 +1,15 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from collections import namedtuple
-from typing import List, Tuple, Union, Callable
+from typing import Callable
+from typing import List
+from typing import Tuple
+from typing import Union
 
-from arclang.image import Image, Point
+import matplotlib.pyplot as plt
+import numpy as np
+
+from arclang.image import Image
+from arclang.image import Point
+
 
 Point = namedtuple("Point", ["x", "y"])
 
@@ -74,7 +80,9 @@ def visualize_count(img: Image, result: Image):
 
 def visualize_cut(img: Image, mask: Image, result: List[Image]):
     n_results = len(result) if result else 0
-    fig, visualize_axs = plt.subplots(1, 3 + n_results, figsize=(5 * (3 + n_results), 5))
+    fig, visualize_axs = plt.subplots(
+        1, 3 + n_results, figsize=(5 * (3 + n_results), 5)
+    )
 
     axs[0].imshow(img.mask, cmap="viridis")
     axs[0].set_title(f"Input ({img.w}x{img.h})")
@@ -250,32 +258,43 @@ def visualize_split_cols(img: Image, result: List[Image]):
     plt.show()
 
 
-def visualize_transformation(original: Image, transformed: Image, 
-                             title: str = "Image Transformation",
-                             original_title: str = "Original",
-                             transformed_title: str = "Transformed"):
+def visualize_transformation(
+    original: Image,
+    transformed: Image,
+    title: str = "Image Transformation",
+    original_title: str = "Original",
+    transformed_title: str = "Transformed",
+):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-    
+
     # Display original image
-    ax1.imshow(original.mask, cmap='viridis')
+    ax1.imshow(original.mask, cmap="viridis")
     ax1.set_title(f"{original_title} ({original.w}x{original.h})")
-    ax1.axis('off')
-    
+    ax1.axis("off")
+
     # Create a full-size array for the transformed image
-    full_size = np.zeros((max(original.h, transformed.y + transformed.h) - min(0, transformed.y),
-                          max(original.w, transformed.x + transformed.w) - min(0, transformed.x)))
-    
+    full_size = np.zeros(
+        (
+            max(original.h, transformed.y + transformed.h) - min(0, transformed.y),
+            max(original.w, transformed.x + transformed.w) - min(0, transformed.x),
+        )
+    )
+
     # Calculate the offset for the transformed image
-    y_start, x_start = transformed.y - min(0, transformed.y), transformed.x - min(0, transformed.x)
-    
+    y_start, x_start = transformed.y - min(0, transformed.y), transformed.x - min(
+        0, transformed.x
+    )
+
     # Place the transformed image in the full-size array
-    full_size[y_start:y_start+transformed.h, x_start:x_start+transformed.w] = transformed.mask
-    
+    full_size[y_start : y_start + transformed.h, x_start : x_start + transformed.w] = (
+        transformed.mask
+    )
+
     # Display transformed image
-    ax2.imshow(full_size, cmap='viridis')
+    ax2.imshow(full_size, cmap="viridis")
     ax2.set_title(f"{transformed_title} ({transformed.w}x{transformed.h})")
-    ax2.axis('off')
-    
+    ax2.axis("off")
+
     plt.suptitle(title)
     plt.tight_layout()
     plt.show()

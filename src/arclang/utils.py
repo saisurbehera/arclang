@@ -1,8 +1,13 @@
 import json
-import numpy as np
+
 import matplotlib.pyplot as plt
-from arclang.image import Image, Piece
-from matplotlib.colors import ListedColormap, BoundaryNorm
+import numpy as np
+from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import ListedColormap
+
+from arclang.image import Image
+from arclang.image import Piece
+
 
 def display_matrices(matrices_dict):
     matrix_input = matrices_dict["input"].mask
@@ -50,6 +55,7 @@ def display_matrices(matrices_dict):
     )
 
     plt.show()
+
 
 def display_matrix(matrix):
     colors = [
@@ -123,12 +129,13 @@ def read_json(file):
         data = json.load(f)
     return data
 
+
 def json_to_images(data):
     images = []
     for dataset in data:
-        for item in dataset['train']:
-            input_image = Image(mask=item['input'])
-            output_image = Image(mask=item['output'])
+        for item in dataset["train"]:
+            input_image = Image(mask=item["input"])
+            output_image = Image(mask=item["output"])
             images.append((input_image, output_image))
     return images
 
@@ -154,20 +161,20 @@ def analyze_matrix_sizes(images):
 
     fig, axes = plt.subplots(3, 1, figsize=(10, 15))
 
-    axes[0].hist(input_flat_sizes, bins=20, color='blue', alpha=0.7)
-    axes[0].set_title('Distribution of Input Matrix Sizes')
-    axes[0].set_xlabel('Size')
-    axes[0].set_ylabel('Frequency')
+    axes[0].hist(input_flat_sizes, bins=20, color="blue", alpha=0.7)
+    axes[0].set_title("Distribution of Input Matrix Sizes")
+    axes[0].set_xlabel("Size")
+    axes[0].set_ylabel("Frequency")
 
-    axes[1].hist(output_flat_sizes, bins=20, color='green', alpha=0.7)
-    axes[1].set_title('Distribution of Output Matrix Sizes')
-    axes[1].set_xlabel('Size')
-    axes[1].set_ylabel('Frequency')
+    axes[1].hist(output_flat_sizes, bins=20, color="green", alpha=0.7)
+    axes[1].set_title("Distribution of Output Matrix Sizes")
+    axes[1].set_xlabel("Size")
+    axes[1].set_ylabel("Frequency")
 
-    axes[2].hist(delta_flat_sizes, bins=20, color='red', alpha=0.7)
-    axes[2].set_title('Delta between Output and Input Matrix Sizes')
-    axes[2].set_xlabel('Delta Size')
-    axes[2].set_ylabel('Frequency')
+    axes[2].hist(delta_flat_sizes, bins=20, color="red", alpha=0.7)
+    axes[2].set_title("Delta between Output and Input Matrix Sizes")
+    axes[2].set_xlabel("Delta Size")
+    axes[2].set_ylabel("Frequency")
 
     plt.tight_layout()
     plt.show()

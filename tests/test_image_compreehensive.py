@@ -1,7 +1,11 @@
 import unittest
+
 import numpy as np
+
 from arclang.function import *
-from arclang.image import Image, Point
+from arclang.image import Image
+from arclang.image import Point
+
 # Import the new display_matrix_term function
 from arclang.utils import display_matrix_term
 
@@ -40,5 +44,6 @@ class TestImageFunctions(unittest.TestCase):
 
     # ... (other test methods)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

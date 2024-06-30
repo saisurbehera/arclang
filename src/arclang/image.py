@@ -1,13 +1,14 @@
-import numpy as np
-from functools import reduce
 from collections import namedtuple
-from typing import List, Tuple, Union
+from functools import reduce
+from typing import List
+from typing import Tuple
+from typing import Union
 
-MAXSIDE = 100
-MAXAREA = 40 * 40
-MAXPIXELS = 40 * 40 * 5
+import numpy as np
 
-Point = namedtuple('Point', ['x', 'y'])
+
+Point = namedtuple("Point", ["x", "y"])
+
 
 class Image:
     def __init__(self, x=0, y=0, w=0, h=0, mask=None):
@@ -34,7 +35,13 @@ class Image:
         return self.mask[i, j]
 
     def __eq__(self, other):
-        return np.array_equal(self.mask, other.mask) and self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
+        return (
+            np.array_equal(self.mask, other.mask)
+            and self.x == other.x
+            and self.y == other.y
+            and self.w == other.w
+            and self.h == other.h
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -43,50 +50,48 @@ class Image:
         if (self.w, self.h) != (other.w, other.h):
             return (self.w, self.h) < (other.w, other.h)
         return self.mask.flatten().tolist() < other.mask.flatten().tolist()
-    
-    def copy(self) -> 'Image':
+
+    def copy(self) -> "Image":
         return Image(self.x, self.y, self.w, self.h, self.mask.copy())
-    
-    
+
     def col_mask(self) -> int:
         mask = 0
         for i in range(self.h):
             for j in range(self.w):
                 mask |= 1 << self[i, j]
         return mask
-    
+
     def count_cols(self, include0: int = 0) -> int:
         mask = self.col_mask()
         if not include0:
             mask &= ~1
-        return bin(mask).count('1')
-    
+        return bin(mask).count("1")
+
     def count(self) -> int:
         return np.sum(self.mask > 0)
-    
+
     @staticmethod
-    def full(p: Point, sz: Point, filling: int = 1) -> 'Image':
-        img = Image(p.x, p.y, sz.x, sz.y)
-        img.mask.fill(filling)
-        return img
-    
-    @staticmethod
-    def full_i(p: Point, sz: Point, filling: int = 1) -> 'Image':
+    def full(p: Point, sz: Point, filling: int = 1) -> "Image":
         img = Image(p.x, p.y, sz.x, sz.y)
         img.mask.fill(filling)
         return img
 
     @staticmethod
-    def empty_p(p: Point, sz: Point) -> 'Image':
-        return Image.full(p, sz, 0)
-    
+    def full_i(p: Point, sz: Point, filling: int = 1) -> "Image":
+        img = Image(p.x, p.y, sz.x, sz.y)
+        img.mask.fill(filling)
+        return img
+
     @staticmethod
-    def empty(x: int, y: int, w: int, h: int) -> 'Image':
+    def empty_p(p: Point, sz: Point) -> "Image":
+        return Image.full(p, sz, 0)
+
+    @staticmethod
+    def empty(x: int, y: int, w: int, h: int) -> "Image":
         return Image(x, y, w, h, np.zeros((h, w), dtype=np.int8))
 
-
     @staticmethod
-    def is_rectangle(img: 'Image') -> bool:
+    def is_rectangle(img: "Image") -> bool:
         return img.count() == img.w * img.h
 
     def count_components_dfs(self, r: int, c: int):
@@ -117,13 +122,20 @@ class Image:
             return 0  # Return 0 if all colors were excluded or the image is empty
         return int(unique[np.argmax(counts)])
 
-    def sub_image(self, p: Point, sz: Point) -> 'Image':
-        assert p.x >= 0 and p.y >= 0 and p.x + sz.x <= self.w and p.y + sz.y <= self.h and sz.x >= 0 and sz.y >= 0
+    def sub_image(self, p: Point, sz: Point) -> "Image":
+        assert (
+            p.x >= 0
+            and p.y >= 0
+            and p.x + sz.x <= self.w
+            and p.y + sz.y <= self.h
+            and sz.x >= 0
+            and sz.y >= 0
+        )
         ret = Image(p.x + self.x, p.y + self.y, sz.x, sz.y)
-        ret.mask = self.mask[p.y:p.y+sz.y, p.x:p.x+sz.x].copy()
+        ret.mask = self.mask[p.y : p.y + sz.y, p.x : p.x + sz.x].copy()
         return ret
 
-    def split_cols(self, include0: int = 0) -> List[Tuple['Image', int]]:
+    def split_cols(self, include0: int = 0) -> List[Tuple["Image", int]]:
         ret = []
         mask = self.col_mask()
         for c in range(int(not include0), 10):
@@ -145,14 +157,15 @@ class Image:
         return r
 
     @staticmethod
-    def empty_p2(p: Union[Point, int], sz: Union[Point, int], h: int = None) -> 'Image':
+    def empty_p2(p: Union[Point, int], sz: Union[Point, int], h: int = None) -> "Image":
         if isinstance(p, Point) and isinstance(sz, Point):
             return Image(p.x, p.y, sz.x, sz.y)
         elif isinstance(p, int) and isinstance(sz, int) and h is not None:
             return Image(p, sz, sz, h)
         else:
             raise ValueError("Invalid arguments for Image.empty")
-    
+
+
 class Piece:
     def __init__(self, imgs=None, node_prob=0.0, keepi=0, knowi=0):
         if imgs is None:
@@ -162,8 +175,10 @@ class Piece:
         self.keepi = keepi
         self.knowi = knowi
 
+
 def check_all(v, f):
     return all(f(it) for it in v)
+
 
 def all_equal(v, f):
     needed = f(v[0])

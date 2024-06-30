@@ -21,7 +21,7 @@
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
 
-This codebase is a python package designed to provide a lot of helper functions for ARC-challenge users. Feel free to use it and contribute to it. It is still a work in progress, so please be patient. 
+This codebase is a python package designed to provide a lot of helper functions for ARC-challenge users. Feel free to use it and contribute to it. It is still a work in progress, so please be patient.
 
 ## Features
 

@@ -1,4 +1,5 @@
 """Sphinx configuration."""
+
 project = "Arclang"
 author = "Sai Surbehera"
 copyright = "2024, Sai Surbehera"

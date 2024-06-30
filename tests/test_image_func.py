@@ -1,7 +1,11 @@
 import unittest
+
 import numpy as np
+
 from arclang.function import *
-from arclang.image import Image, Point
+from arclang.image import Image
+from arclang.image import Point
+
 
 class TestImageFunctions(unittest.TestCase):
 
@@ -144,12 +148,14 @@ class TestImageFunctions(unittest.TestCase):
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_compress(self):
-        img = Image(1, 1, 4, 4, [[0, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
+        img = Image(
+            1, 1, 4, 4, [[0, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0]]
+        )
         compressed = compress(img)
         self.assertEqual(compressed.x, 1 + 1)  # new x = original x + xmi
         self.assertEqual(compressed.y, 1 + 0)  # new y = original y + ymi
-        self.assertEqual(compressed.w, 2)      # new width
-        self.assertEqual(compressed.h, 3)      # new height
+        self.assertEqual(compressed.w, 2)  # new width
+        self.assertEqual(compressed.h, 3)  # new height
         expected = np.array([[1, 0], [1, 1], [0, 1]])
         self.assertTrue(np.array_equal(compressed.mask, expected))
 
@@ -178,24 +184,14 @@ class TestImageFunctions(unittest.TestCase):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         b = Image(0, 0, 2, 2, [[1, 0], [1, 1]])
         result = outer_product_is(a, b)
-        expected = np.array([
-            [1, 0, 2, 0],
-            [1, 1, 2, 2],
-            [3, 0, 4, 0],
-            [3, 3, 4, 4]
-        ])
+        expected = np.array([[1, 0, 2, 0], [1, 1, 2, 2], [3, 0, 4, 0], [3, 3, 4, 4]])
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_outer_product_si(self):
         a = Image(0, 0, 2, 2, [[1, 2], [0, 4]])
         b = Image(0, 0, 2, 2, [[5, 6], [7, 8]])
         result = outer_product_si(a, b)
-        expected = np.array([
-            [5, 6, 5, 6],
-            [7, 8, 7, 8],
-            [0, 0, 5, 6],
-            [0, 0, 7, 8]
-        ])
+        expected = np.array([[5, 6, 5, 6], [7, 8, 7, 8], [0, 0, 5, 6], [0, 0, 7, 8]])
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_fill(self):
@@ -243,14 +239,20 @@ class TestImageFunctions(unittest.TestCase):
         self.assertEqual(result.y, 2)
 
     def test_center(self):
-    # Create a 5x5 image with a distinct pattern
-        img = Image(0, 0, 5, 5, [
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 2, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]
-        ])
+        # Create a 5x5 image with a distinct pattern
+        img = Image(
+            0,
+            0,
+            5,
+            5,
+            [
+                [0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 0],
+                [0, 1, 2, 1, 0],
+                [0, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0],
+            ],
+        )
 
         result = center(img)
 
@@ -264,12 +266,9 @@ class TestImageFunctions(unittest.TestCase):
         self.assertEqual(result.y, img.y + 2)  # Centered vertically
 
         # Test with an even-sized image
-        img_even = Image(1, 1, 4, 4, [
-            [1, 1, 2, 2],
-            [1, 1, 2, 2],
-            [3, 3, 4, 4],
-            [3, 3, 4, 4]
-        ])
+        img_even = Image(
+            1, 1, 4, 4, [[1, 1, 2, 2], [1, 1, 2, 2], [3, 3, 4, 4], [3, 3, 4, 4]]
+        )
 
         result_even = center(img_even)
 
@@ -366,19 +365,14 @@ class TestImageFunctions(unittest.TestCase):
         img = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         room = Image(-1, -1, 4, 4)
         result = extend(img, room)
-        expected = np.array([
-            [1, 1, 2, 2],
-            [1, 1, 2, 2],
-            [3, 3, 4, 4],
-            [3, 3, 4, 4]
-        ])
+        expected = np.array([[1, 1, 2, 2], [1, 1, 2, 2], [3, 3, 4, 4], [3, 3, 4, 4]])
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_pick_max(self):
         imgs = [
             Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
             Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
-            Image(0, 0, 1, 1, [[1]])
+            Image(0, 0, 1, 1, [[1]]),
         ]
         result = pick_max(imgs, lambda img: img.w * img.h)
         self.assertEqual(result.w, 3)
@@ -403,41 +397,47 @@ class TestImageFunctions(unittest.TestCase):
         self.assertTrue(all(piece.count_cols() == 1 for piece in result))
 
     def test_get_regular(self):
-        img = Image(0, 0, 4, 4, [
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1]
-        ])
+        img = Image(
+            0, 0, 4, 4, [[1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1]]
+        )
         result = get_regular(img)
-        expected = np.zeros((4,4))
+        expected = np.zeros((4, 4))
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_cut_pick_max(self):
-        img = Image(0,0,5,5,[
-            [1, 1, 1, 0, 0],
-            [1, 2, 2, 0, 0],
-            [1, 2, 2, 3, 3],
-            [0, 0, 3, 3, 3],
-            [0, 0, 3, 3, 3]
-        ])
-        mask = Image(0,0,5,5,[
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 0, 0],
-            [0, 1, 1, 2, 2],
-            [0, 0, 2, 2, 2],
-            [0, 0, 2, 2, 2]
-        ])
+        img = Image(
+            0,
+            0,
+            5,
+            5,
+            [
+                [1, 1, 1, 0, 0],
+                [1, 2, 2, 0, 0],
+                [1, 2, 2, 3, 3],
+                [0, 0, 3, 3, 3],
+                [0, 0, 3, 3, 3],
+            ],
+        )
+        mask = Image(
+            0,
+            0,
+            5,
+            5,
+            [
+                [0, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0],
+                [0, 1, 1, 2, 2],
+                [0, 0, 2, 2, 2],
+                [0, 0, 2, 2, 2],
+            ],
+        )
         result = cut_pick_max(img, mask, 0)  # Pick largest piece
         self.assertEqual(result.count(), 5)
 
     def test_regular_cut_pick_max(self):
-        img = Image(0, 0, 4, 4, [
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1]
-        ])
+        img = Image(
+            0, 0, 4, 4, [[1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1]]
+        )
         result = regular_cut_pick_max(img, 0)  # Pick largest piece
         self.assertEqual(result.count(), 8)
 
@@ -447,12 +447,9 @@ class TestImageFunctions(unittest.TestCase):
         self.assertEqual(result.count(), 4)
 
     def test_regular_cut_compose(self):
-        img = Image(0, 0, 4, 4, [
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1]
-        ])
+        img = Image(
+            0, 0, 4, 4, [[1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1]]
+        )
         result = regular_cut_compose(img, 0)
         self.assertEqual(result.count(), 8)
 
@@ -471,7 +468,7 @@ class TestImageFunctions(unittest.TestCase):
         imgs = [
             Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
             Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
-            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
         ]
         result = pick_maxes(imgs, lambda img: img.w * img.h)
         self.assertEqual(len(result), 2)
@@ -481,7 +478,7 @@ class TestImageFunctions(unittest.TestCase):
         imgs = [
             Image(0, 0, 2, 2, [[1, 1], [1, 1]]),
             Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
-            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+            Image(0, 0, 3, 3, [[1, 1, 1], [1, 1, 1], [1, 1, 1]]),
         ]
         result = pick_not_maxes(imgs, 0)  # Use area as criterion
         self.assertEqual(len(result), 1)
@@ -508,24 +505,14 @@ class TestImageFunctions(unittest.TestCase):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         b = Image(0, 0, 4, 4)
         result = repeat(a, b)
-        expected = np.array([
-            [1, 2, 1, 2],
-            [3, 4, 3, 4],
-            [1, 2, 1, 2],
-            [3, 4, 3, 4]
-        ])
+        expected = np.array([[1, 2, 1, 2], [3, 4, 3, 4], [1, 2, 1, 2], [3, 4, 3, 4]])
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_mirror(self):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         b = Image(0, 0, 4, 4)
         result = mirror(a, b)
-        expected = np.array([
-            [1, 2, 2, 1],
-            [3, 4, 4, 3],
-            [3, 4, 4, 3],
-            [1, 2, 2, 1]
-        ])
+        expected = np.array([[1, 2, 2, 1], [3, 4, 4, 3], [3, 4, 4, 3], [1, 2, 2, 1]])
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_maj_col(self):
@@ -539,24 +526,28 @@ class TestImageFunctions(unittest.TestCase):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         b = Image(0, 0, 5, 5)
         result = repeat(a, b, pad=1)
-        expected = np.array([
-            [1, 2, 0, 1, 2],
-            [3, 4, 0, 3, 4],
-            [0, 0, 0, 0, 0],
-            [1, 2, 0, 1, 2],
-            [3, 4, 0, 3, 4]
-        ])
+        expected = np.array(
+            [
+                [1, 2, 0, 1, 2],
+                [3, 4, 0, 3, 4],
+                [0, 0, 0, 0, 0],
+                [1, 2, 0, 1, 2],
+                [3, 4, 0, 3, 4],
+            ]
+        )
         self.assertTrue(np.array_equal(result.mask, expected))
 
     def test_mirror_with_pad(self):
         a = Image(0, 0, 2, 2, [[1, 2], [3, 4]])
         b = Image(0, 0, 5, 5)
         result = mirror(a, b, pad=1)
-        expected = np.array([
-            [1, 2, 0, 2, 1],
-            [3, 4, 0, 4, 3],
-            [0, 0, 0, 0, 0],
-            [3, 4, 0, 4, 3],
-            [1, 2, 0, 2, 1]
-        ])
+        expected = np.array(
+            [
+                [1, 2, 0, 2, 1],
+                [3, 4, 0, 4, 3],
+                [0, 0, 0, 0, 0],
+                [3, 4, 0, 4, 3],
+                [1, 2, 0, 2, 1],
+            ]
+        )
         self.assertTrue(np.array_equal(result.mask, expected))
