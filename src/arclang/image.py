@@ -1,8 +1,8 @@
-from collections import namedtuple
-from functools import reduce
 from typing import List
 from typing import Tuple
 from typing import Union
+from functools import reduce
+from collections import namedtuple
 
 import numpy as np
 
@@ -93,24 +93,53 @@ class Image:
     @staticmethod
     def is_rectangle(img: "Image") -> bool:
         return img.count() == img.w * img.h
-
-    def count_components_dfs(self, r: int, c: int):
-        self[r, c] = 0
+    
+    
+    def find_same_color_components_dfs(self, r: int, c: int, visited: np.ndarray, component: np.ndarray, value: int):
+        visited[r, c] = True
+        component[r, c] = value
         for nr in range(r - 1, r + 2):
             for nc in range(c - 1, c + 2):
-                if 0 <= nr < self.h and 0 <= nc < self.w and self[nr, nc]:
-                    self.count_components_dfs(nr, nc)
+                if 0 <= nr < self.h and 0 <= nc < self.w and self.mask[nr, nc] == value and not visited[nr, nc]:
+                    self.find_same_color_components_dfs(nr, nc, visited, component, value)
 
-    def count_components(self) -> int:
-        img_copy = self.mask.copy()
-        ans = 0
+    def list_same_color_components(self) -> List["Image"]:
+        visited = np.zeros_like(self.mask, dtype=bool)
+        components = []
+        for value in np.unique(self.mask):
+            if value == 0:  # Skip background
+                continue
+            for i in range(self.h):
+                for j in range(self.w):
+                    if self.mask[i, j] == value and not visited[i, j]:
+                        component = np.zeros_like(self.mask)
+                        self.find_same_color_components_dfs(i, j, visited, component, value)
+                        components.append(Image(self.x, self.y, self.w, self.h, component))
+        return components
+
+    def find_connected_components_dfs(self, r: int, c: int, visited: np.ndarray, component: np.ndarray):
+        visited[r, c] = True
+        component[r, c] = self.mask[r, c]
+        for nr in range(r - 1, r + 2):
+            for nc in range(c - 1, c + 2):
+                if 0 <= nr < self.h and 0 <= nc < self.w and self.mask[nr, nc] != 0 and not visited[nr, nc]:
+                    self.find_connected_components_dfs(nr, nc, visited, component)
+
+    def list_components(self) -> List["Image"]:
+        visited = np.zeros_like(self.mask, dtype=bool)
+        components = []
         for i in range(self.h):
             for j in range(self.w):
-                if img_copy[i, j]:
-                    self.count_components_dfs(i, j)
-                    ans += 1
-        self.mask = img_copy  # Restore the original mask
-        return ans
+                if self.mask[i, j] != 0 and not visited[i, j]:
+                    component = np.zeros_like(self.mask)
+                    self.find_connected_components_dfs(i, j, visited, component)
+                    components.append(Image(self.x, self.y, self.w, self.h, component))
+        return components
+
+    def count_components(self) -> int:
+        return len(self.list_components())
+
+
 
     def majority_col(self, include0: int = 0) -> int:
         unique, counts = np.unique(self.mask, return_counts=True)
