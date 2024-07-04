@@ -1,16 +1,15 @@
 from typing import List
 from typing import Tuple
 from typing import Callable
-from collections import namedtuple
+from collections import namedtuple, deque
 
+import heapq
 import numpy as np
 import matplotlib.pyplot as plt
 
 from arclang.image import Image
 from arclang.image import Point
-from arclang.constants import MAXAREA
-from arclang.constants import MAXSIDE
-from arclang.constants import MAXPIXELS
+from arclang.constants import MAXAREA, MAXSIDE, MAXPIXELS
 
 
 def col(id: int) -> Image:
@@ -146,6 +145,33 @@ def compress(img: Image, bg: Image = None) -> Image:
             ret[i - ymi, j - xmi] = img[i, j]
     return ret
 
+def list_components(img: Image) -> List[Tuple[Image, Point]]:
+    def split_all_with_position(img: Image) -> List[Tuple[Image, Point]]:
+        ret = []
+        done = Image.empty(img.x, img.y, img.w, img.h)
+
+        def dfs(r: int, c: int, col: int, toadd: Image):
+            if r < 0 or r >= img.h or c < 0 or c >= img.w or img[r, c] != col or done[r, c]:
+                return
+            toadd[r, c] = img[r, c]
+            done[r, c] = 1
+            for d in range(4):
+                nr = r + (d == 0) - (d == 1)
+                nc = c + (d == 2) - (d == 3)
+                dfs(nr, nc, col, toadd)
+
+        for i in range(img.h):
+            for j in range(img.w):
+                if not done[i, j] and img[i, j] != 0:  # Skip background (0)
+                    toadd = Image.empty(img.x, img.y, img.w, img.h)
+                    dfs(i, j, img[i, j], toadd)
+                    toadd = compress(toadd)
+                    if toadd.count() > 0:
+                        ret.append((toadd, Point(j, i)))  # Use original (j, i) as the starting point
+
+        return ret
+
+    return split_all_with_position(img)
 
 def embed(img: Image, shape: Image) -> Image:
     ret = Image(shape.x, shape.y, shape.w, shape.h)
@@ -802,6 +828,22 @@ def cut_compose(a: Image, b: Image, id: int) -> Image:
     v = cut(a, b)
     return compose_list([to_origin(img) for img in v], id)
 
+def combine_images(image_list: List[Tuple[Image, Point]]) -> Image:
+    # Find the dimensions of the combined image
+    max_x = max(point.x + img.w for img, point in image_list)
+    max_y = max(point.y + img.h for img, point in image_list)
+    
+    # Create a new empty image
+    combined = Image.empty(0, 0, max_x, max_y)
+    
+    # Place each image onto the combined image
+    for img, point in image_list:
+        for y in range(img.h):
+            for x in range(img.w):
+                if img[y, x] != 0:  # Only copy non-zero (non-background) pixels
+                    combined[point.y + y, point.x + x] = img[y, x]
+    
+    return combined
 
 def regular_cut_compose(a: Image, id: int) -> Image:
     b = get_regular(a)
@@ -1080,15 +1122,6 @@ def split_all(img: Image) -> List[Image]:
                     ret.append(toadd)
 
     return ret
-
-
-from typing import List
-from typing import Tuple
-from typing import Callable
-from collections import deque
-
-import numpy as np
-
 
 def split_all(img: Image) -> List[Image]:
     ret = []
@@ -1437,14 +1470,6 @@ def swap_template(in_img: Image, a: Image, b: Image, rigids: int = 0) -> Image:
                         ret.mask[i : i + need.h, j : j + need.w] = to.mask
                         done.mask[i : i + need.h, j : j + need.w] = 1
     return ret
-
-
-import heapq
-from typing import List
-from typing import Tuple
-
-import numpy as np
-
 
 def spread_cols(img: Image, skipmaj: int = 0) -> Image:
     skipcol = img.majority_col() if skipmaj else -1
