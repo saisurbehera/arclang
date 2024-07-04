@@ -8,6 +8,7 @@ import numpy as np
 
 
 Point = namedtuple("Point", ["x", "y"])
+from scipy.ndimage import label, generate_binary_structure
 
 
 class Image:
@@ -138,7 +139,31 @@ class Image:
 
     def count_components(self) -> int:
         return len(self.list_components())
+    
+    def count_components_col(self) -> int:
+        return len(self.list_same_color_components())
 
+    
+    def aggressive_connected_components(self, connectivity=2) -> List["Image"]:
+        """
+        Find connected components with a more aggressive connectivity.
+        
+        :param connectivity: 1 for 4-connectivity, 2 for 8-connectivity, 
+                             can be increased for more aggressive connectivity
+        :return: List of Image objects, each representing a component
+        """
+        # Create a structure for the given connectivity
+        struct = generate_binary_structure(2, connectivity)
+        
+        # Label the connected components
+        labeled_array, num_features = label(self.mask > 0, structure=struct)
+        
+        components = []
+        for i in range(1, num_features + 1):
+            component = np.where(labeled_array == i, self.mask, 0)
+            components.append(Image(self.x, self.y, self.w, self.h, component))
+        
+        return components
 
 
     def majority_col(self, include0: int = 0) -> int:

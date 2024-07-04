@@ -2,9 +2,9 @@ import unittest
 
 import numpy as np
 
-from arclang.image import Image  # Assuming your classes are in 'image_module.py'
 from arclang.image import Piece
 from arclang.image import Point
+from arclang.image import Image  # Assuming your classes are in 'image_module.py'
 
 
 class TestImageAdditional(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestImageAdditional(unittest.TestCase):
 
     def test_count_components(self):
         img = Image(0, 0, 3, 3, [[1, 0, 1], [0, 1, 0], [1, 0, 1]])
-        self.assertEqual(img.count_components(), 5)
+        self.assertEqual(img.count_components_col(), 5)
 
     def test_majority_col(self):
         img = Image(0, 0, 3, 3, [[1, 2, 1], [2, 1, 2], [1, 2, 1]])
