@@ -1,7 +1,7 @@
 from typing import List
 from typing import Tuple
-from typing import Union
 from functools import reduce
+from typing import Union, Literal
 from collections import namedtuple
 
 import numpy as np
@@ -118,25 +118,50 @@ class Image:
                         components.append(Image(self.x, self.y, self.w, self.h, component))
         return components
 
-    def find_connected_components_dfs(self, r: int, c: int, visited: np.ndarray, component: np.ndarray):
+    def find_connected_components_dfs(self, r: int, c: int, color: int, visited: np.ndarray, component: np.ndarray):
+        if r < 0 or r >= self.h or c < 0 or c >= self.w or visited[r, c] or self.mask[r, c] != color:
+            return
         visited[r, c] = True
-        component[r, c] = self.mask[r, c]
-        for nr in range(r - 1, r + 2):
-            for nc in range(c - 1, c + 2):
-                if 0 <= nr < self.h and 0 <= nc < self.w and self.mask[nr, nc] != 0 and not visited[nr, nc]:
-                    self.find_connected_components_dfs(nr, nc, visited, component)
+        component[r, c] = color
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            self.find_connected_components_dfs(r + dr, c + dc, color, visited, component)
 
-    def list_components(self) -> List["Image"]:
-        visited = np.zeros_like(self.mask, dtype=bool)
+    def list_components(self, strategy: str = 'dfs', fit: bool = False) -> List["Image"]:
         components = []
-        for i in range(self.h):
-            for j in range(self.w):
-                if self.mask[i, j] != 0 and not visited[i, j]:
-                    component = np.zeros_like(self.mask)
-                    self.find_connected_components_dfs(i, j, visited, component)
-                    components.append(Image(self.x, self.y, self.w, self.h, component))
-        return components
+        
+        if strategy == 'dfs':
+            visited = np.zeros_like(self.mask, dtype=bool)
+            for i in range(self.h):
+                for j in range(self.w):
+                    if self.mask[i, j] != 0 and not visited[i, j]:
+                        component = np.zeros_like(self.mask)
+                        self.find_connected_components_dfs(i, j, self.mask[i, j], visited, component)
+                        components.append(component)
+        
+        elif strategy == 'partition':
+            unique_colors = np.unique(self.mask)
+            unique_colors = unique_colors[unique_colors != 0]  # Exclude background color 0
+            for color in unique_colors:
+                component = np.zeros_like(self.mask)
+                component[self.mask == color] = color
+                components.append(component)
+        
+        else:
+            raise ValueError("Invalid strategy. Choose 'dfs' or 'partition'.")
 
+        return [self._process_component(comp, fit) for comp in components]
+
+    def _process_component(self, component: np.ndarray, fit: bool) -> "Image":
+        if fit:
+            rows, cols = np.where(component != 0)
+            if len(rows) == 0 or len(cols) == 0:
+                return None  # Skip empty components
+            top, bottom, left, right = rows.min(), rows.max(), cols.min(), cols.max()
+            cropped = component[top:bottom+1, left:right+1]
+            return Image(left, top, cropped.shape[1], cropped.shape[0], cropped)
+        else:
+            return Image(self.x, self.y, self.w, self.h, component)
+        
     def count_components(self) -> int:
         return len(self.list_components())
     

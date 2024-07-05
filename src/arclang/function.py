@@ -1,14 +1,12 @@
-from typing import List
-from typing import Tuple
-from typing import Callable
+from typing import List, Tuple, Callable
 from collections import namedtuple, deque
 
 import heapq
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, BoundaryNorm
 
-from arclang.image import Image
-from arclang.image import Point
+from arclang.image import Image, Point
 from arclang.constants import MAXAREA, MAXSIDE, MAXPIXELS
 
 
@@ -16,10 +14,56 @@ def col(id: int) -> Image:
     assert 0 <= id < 10
     return Image.full(Point(0, 0), Point(1, 1), id)
 
+def display_matrix(matrix):
+    colors = [
+        "#000000",  # black
+        "#0074D9",  # blue
+        "#FF4136",  # red
+        "#2ECC40",  # green
+        "#FFDC00",  # yellow
+        "#AAAAAA",  # grey
+        "#F012BE",  # fuchsia
+        "#FF851B",  # orange
+        "#7FDBFF",  # teal
+        "#870C25",  # brown
+    ]
+    cmap = ListedColormap(colors)
+    bounds = np.arange(-0.5, 10, 1)
+    norm = BoundaryNorm(bounds, cmap.N)
+
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+
+    cax = ax.matshow(matrix.mask, cmap=cmap, norm=norm)
+    ax.set_title("Matrix")
+
+    # Add gridlines
+    ax.set_xticks(np.arange(-0.5, matrix.mask.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, matrix.mask.shape[0], 1), minor=True)
+    ax.grid(which='minor', color='w', linestyle='-', linewidth=0.5)
+    ax.tick_params(which='minor', size=0)
+
+    fig.colorbar(
+        cax, ax=ax, ticks=np.arange(0, 10), orientation="vertical"
+    ).ax.set_yticklabels(
+        [
+            "Symbol 0",
+            "Symbol 1",
+            "Symbol 2",
+            "Symbol 3",
+            "Symbol 4",
+            "Symbol 5",
+            "Symbol 6",
+            "Symbol 7",
+            "Symbol 8",
+            "Symbol 9",
+        ]
+    )
+
+    plt.show()
+
 
 def pos(dx: int, dy: int) -> Image:
     return Image.full(Point(dx, dy), Point(1, 1))
-
 
 def square(id: int) -> Image:
     assert id >= 1
@@ -65,10 +109,26 @@ def get_size0(img: Image) -> Image:
     return Image.full(Point(0, 0), Point(img.w, img.h), 0)
 
 
-def move(img: Image, p: Image) -> Image:
-    img.x += p.x
-    img.y += p.y
-    return img
+def move(img:Image, shift: Tuple[int,int]):
+    matrix = img.mask
+    result = np.zeros_like(matrix)
+    shift_y, shift_x = shift
+
+    if shift_x > 0:
+        result[shift_x:, :] = matrix[:-shift_x, :]
+    elif shift_x < 0:
+        result[:shift_x, :] = matrix[-shift_x:, :]
+    else:
+        result[:, :] = matrix[:, :]
+
+    if shift_y > 0:
+        result[:, shift_y:] = result[:, :-shift_y]
+    elif shift_y < 0:
+        result[:, :shift_y] = result[:, -shift_y:]
+    else:
+        result[:, :] = result[:, :]
+
+    return Image(img.x,img.y,img.w,img.h,result)
 
 
 def filter_col(img: Image, palette: Image) -> Image:
@@ -724,7 +784,8 @@ def max_criterion(img: Image, id: int) -> int:
         comp = compress(img)
         return (comp.w * comp.h - comp.count()) * (-1 if id == 9 else 1)
     elif id in (10, 11):
-        return img.count_interior() * (-1 if id == 11 else 1)
+        return -img.count()
+        # return img.count_interior() * (-1 if id == 11 else 1)
     elif id == 12:
         return -img.x
     elif id == 13:
