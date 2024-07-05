@@ -71,5 +71,3 @@ Additional Python functions not in C++:
 - [x] get_repeating
 
 
-# Functions 2
-
