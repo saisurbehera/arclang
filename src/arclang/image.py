@@ -190,6 +190,24 @@ class Image:
         
         return components
 
+    def list_distinct_components(self, fit: bool = False) -> List["Image"]:
+        # Use scipy's label function to identify distinct regions
+        labeled_array, num_features = label(self.mask)
+        
+        components = []
+        for i in range(1, num_features + 1):
+            component = np.zeros_like(self.mask)
+            component[labeled_array == i] = self.mask[labeled_array == i]
+            
+            if fit:
+                rows, cols = np.where(component != 0)
+                top, bottom, left, right = rows.min(), rows.max(), cols.min(), cols.max()
+                cropped = component[top:bottom+1, left:right+1]
+                components.append(Image(left, top, cropped.shape[1], cropped.shape[0], cropped))
+            else:
+                components.append(Image(self.x, self.y, self.w, self.h, component))
+        
+        return components
 
     def majority_col(self, include0: int = 0) -> int:
         unique, counts = np.unique(self.mask, return_counts=True)
