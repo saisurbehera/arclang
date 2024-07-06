@@ -13,20 +13,50 @@ class SQLParser:
 
     def parse(self, sql_string: str) -> List[Tuple[str, List[str]]]:
         raw_commands = sql_string.split(';')
-        for cmd in raw_commands:
-            cmd = cmd.strip()
+        i = 0
+        while i < len(raw_commands):
+            cmd = raw_commands[i].strip()
             if cmd:
                 parts = cmd.split()
                 operation = parts[0].upper()
                 args = parts[1:]
-                self.commands.append((operation, args))
+                
+                if operation in ['IF', 'WHILE', 'FOREACH']:
+                    sub_commands, j = self.parse_block(raw_commands[i+1:])
+                    self.commands.append((operation, args + [sub_commands]))
+                    i += j + 1
+                else:
+                    self.commands.append((operation, args))
+            i += 1
         return self.commands
 
+    def parse_block(self, commands: List[str]) -> Tuple[List[Tuple[str, List[str]]], int]:
+        block = []
+        i = 0
+        while i < len(commands):
+            cmd = commands[i].strip()
+            if cmd.upper() == 'END':
+                return block, i + 1
+            parts = cmd.split()
+            operation = parts[0].upper()
+            args = parts[1:]
+            if operation in ['IF', 'WHILE', 'FOREACH']:
+                sub_block, j = self.parse_block(commands[i+1:])
+                block.append((operation, args + [sub_block]))
+                i += j + 1
+            else:
+                block.append((operation, args))
+            i += 1
+        return block, i
+
 class CommandMapper:
-    def __init__(self):
+    def __init__(self,image):
+        self.image  = image
         self.function_map = {
             'SELECT': self.select,
+            'DESELECT': self.deselect,
             'FILL': self.fill,
+            'SPLIT': self.split,
             'EXPAND': self.expand,
             'SHRINK': self.shrink,
             'CLEAR': self.clear,
@@ -34,13 +64,13 @@ class CommandMapper:
             'MOVE': self.move,
             'ROTATE': self.rotate,
             'FLIP': self.flip,
-            'REPLACE': self.replace,
+            'REPLACECOL': self.replacecol,
             'OVERLAY': self.overlay,
             'SUBTRACT': self.subtract,
             'INTERSECT': self.intersect,
             'REPEAT': self.repeat,
             'APPLY_PATTERN': self.apply_pattern,
-            'COUNT': self.count,
+            'COUNTCOL': self.count,
             'GROUP': self.group,
             'FOREACH': self.foreach,
             'IF': self.if_condition,
@@ -48,7 +78,6 @@ class CommandMapper:
             'CONVOLVE': self.convolve,
             'APPLY_FILTER': self.apply_filter,
             'SCALE': self.scale,
-            'SHIFT': self.shift,
             'EXTRUDE': self.extrude,
             'RANDOMIZE': self.randomize,
             'SORT_COLORS': self.sort_colors,
@@ -67,6 +96,13 @@ class CommandMapper:
         x1, y1, x2, y2 = map(int, args)
         self.selected_area = (x1, y1, x2, y2)
         return lambda img: img
+    
+    def deselect(self, args: List[str]) -> Callable[[Image], Image]:
+        self.selected_area = None
+        return lambda img: img
+
+    def split(self,  args: List[str]) -> Callable[[Image], Image]:
+        raise NotImplementedError()
 
     def fill(self, args: List[str]) -> Callable[[Image], Image]:
         color = int(args[0])
@@ -99,7 +135,7 @@ class CommandMapper:
         axis = args[0].upper()
         return lambda img: self.apply_to_selected_area(img, lambda area: rigid(area, 4 if axis == 'HORIZONTAL' else 5))
 
-    def replace(self, args: List[str]) -> Callable[[Image], Image]:
+    def replacecol(self, args: List[str]) -> Callable[[Image], Image]:
         old_color, new_color = map(int, args[:2])
         if len(args) > 2 and args[2] == 'IN':
             x1, y1, x2, y2 = args[3:]  # Keep these as strings for now
@@ -177,9 +213,6 @@ class CommandMapper:
         factor = float(args[0])
         return lambda img: self.apply_to_selected_area(img, lambda area: self.scale_image(area, factor))
 
-    def shift(self, args: List[str]) -> Callable[[Image], Image]:
-        direction, amount = args[0], int(args[1])
-        return lambda img: self.apply_to_selected_area(img, lambda area: self.shift_image(area, direction, amount))
 
     def extrude(self, args: List[str]) -> Callable[[Image], Image]:
         direction, amount = args[0], int(args[1])
@@ -262,31 +295,54 @@ class CommandMapper:
             return result
         return func(img)
     
-        # Helper methods for applying operations
-                # Place the submatrix in the new position
-            
-    def apply_to_selected_area_move(self, img: Image, func: Callable[[Image], Image], shift: tuple[int,int]) -> Image:
+    def apply_area(self, img: Image, func: Callable[[Image], Image]) -> Image:
         if self.selected_area:
-            shift_x , shift_y = shift
+            x1, y1, x2, y2 = self.selected_area
+            selected = img.sub_image(Point(x1, y1), Point(x2-x1, y2-y1))
+            modified = func(selected)
+            result = img.copy()
+            result.mask[y1:y2, x1:x2] = modified.mask
+            return result
+        return func(img)
+    
+
+    def apply_to_selected_area_move(self, img: Image, func: Callable[[Image], Image], shift: tuple[int, int]) -> Image:
+        if self.selected_area:
+            shift_x, shift_y = shift
             x1, y1, x2, y2 = self.selected_area
             result_matrix = img.copy()
             matrix = img.mask
             
-            submatrix = matrix[y1:y2, x1:x2]
+            # Get the submatrix of the selected area
+            submatrix = matrix[y1:y2, x1:x2].copy()
             
-            # Calculate the new top-left position after the shift
-            x1_new,y1_new = x1+shift_x,y1 + shift_y
-            
-            # Define the range for the new position
-            x2_new,y2_new = x2+shift_x,y2 + shift_y
+            # Calculate the new coordinates after the shift
+            x1_new, y1_new = x1 + shift_x, y1 + shift_y
+            x2_new, y2_new = x2 + shift_x, y2 + shift_y
             
             # Clear the original submatrix area
-            result_matrix.mask[y1:y2,x1:x2] = 0
-            # Place the submatrix in the new position
-            result_matrix.mask[y1_new:y2_new, x1_new:x2_new] = submatrix
-            return result_matrix
+            result_matrix.mask[y1:y2, x1:x2] = 0
             
-        
+            # Calculate the valid source and destination regions
+            src_x1 = max(0, -x1_new)
+            src_y1 = max(0, -y1_new)
+            src_x2 = min(x2 - x1, img.w - x1_new)
+            src_y2 = min(y2 - y1, img.h - y1_new)
+            
+            dst_x1 = max(0, x1_new)
+            dst_y1 = max(0, y1_new)
+            dst_x2 = min(img.w, x2_new)
+            dst_y2 = min(img.h, y2_new)
+            
+            # Calculate the dimensions of the area to be filled
+            width = min(src_x2 - src_x1, dst_x2 - dst_x1)
+            height = min(src_y2 - src_y1, dst_y2 - dst_y1)
+            
+            if width > 0 and height > 0:
+                # Place the submatrix in the new position
+                result_matrix.mask[dst_y1:dst_y1+height, dst_x1:dst_x1+width] = submatrix[src_y1:src_y1+height, src_x1:src_x1+width]
+            
+            return result_matrix
         return func(img)
 
     def apply_n_times(self, img: Image, operation: str, n: int) -> Image:
@@ -334,10 +390,6 @@ class CommandMapper:
         new_w, new_h = int(img.w * factor), int(img.h * factor)
         return resize(img, new_w, new_h, 'NEAREST')
 
-    def shift_image(self, img: Image, direction: str, amount: int) -> Image:
-        dx = amount if direction == 'RIGHT' else -amount if direction == 'LEFT' else 0
-        dy = amount if direction == 'DOWN' else -amount if direction == 'UP' else 0
-        return move(img, (dx, dy))
 
     def extrude_image(self, img: Image, direction: str, amount: int) -> Image:
         # Implementation depends on how you want to handle extrusion
@@ -417,7 +469,8 @@ class SQLExecutionEngine:
     def __init__(self, image: Image):
         self.image = image
         self.parser = SQLParser()
-        self.mapper = CommandMapper()
+        self.mapper = CommandMapper(image)
+        self.variable_map = {}
 
     def execute(self, sql_string: str) -> Image:
         commands = self.parser.parse(sql_string)
@@ -449,3 +502,7 @@ class SQLExecutionEngine:
                         self.image = func(col)
                     else:
                         self.image = func(self.image)
+
+
+"""Some ones whould return values, we will list them below in the list"""
+RETURN_FUNCTIONS = ["COUNTCOL"]

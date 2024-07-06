@@ -93,20 +93,29 @@ FOREACH Y X
 These functions can be directly implemented using the provided Image class and its methods:
 
 1. SELECT: Can be implemented using Image.sub_image()
+    - Selected Done
 2. FILL: Can be implemented using Image.full()
+    - Fill selected done 
 3. SPLIT: Can be implemented using list_components() or split_cols()
 4. CENTER: Can be implemented using center()
 5. BOUNDARY: Can be implemented using border()
 6. INSIDE: Can be implemented using interior()
 7. OUTSIDE: Can be implemented using invert()
 8. SHRINK: Can be implemented using compress()
+    - Shrink implemented
 9. CLEAR: Can be implemented using Image.empty()
+    - Clear implemented
 10. COPY: Can be implemented using Image.copy()
+    - Testing required
 11. MOVE: Can be implemented using align() or by modifying x and y attributes
+    - Move implemented
 12. ROTATE: Can be implemented using rigid()
+    - Rotate implmented
 13. FLIP: Can be implemented using rigid()
+    - Flip implemented
 14. REPLACE: Can be implemented using replace_cols()
-15. REPLACECLR: Can be implemented using filter_col() and compose()
+15. REPLACECOL: Can be implemented using filter_col() and compose()
+    - Replace Colors implemented
 16. OVERLAY: Can be implemented using compose()
 17. SUBTRACT: Can be implemented using compose() with a custom function
 18. COUNT: Can be implemented using count()
