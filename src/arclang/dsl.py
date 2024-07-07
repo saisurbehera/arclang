@@ -4,50 +4,7 @@ from arclang.image import Image, Point
 import numpy as np
 import numpy as np
 from collections import namedtuple
-from typing import List, Tuple, Callable
-
-
-class SQLParser:
-    def __init__(self):
-        self.commands = []
-
-    def parse(self, sql_string: str) -> List[Tuple[str, List[str]]]:
-        raw_commands = sql_string.split(';')
-        i = 0
-        while i < len(raw_commands):
-            cmd = raw_commands[i].strip()
-            if cmd:
-                parts = cmd.split()
-                operation = parts[0].upper()
-                args = parts[1:]
-                
-                if operation in ['IF', 'WHILE', 'FOREACH']:
-                    sub_commands, j = self.parse_block(raw_commands[i+1:])
-                    self.commands.append((operation, args + [sub_commands]))
-                    i += j + 1
-                else:
-                    self.commands.append((operation, args))
-            i += 1
-        return self.commands
-
-    def parse_block(self, commands: List[str]) -> Tuple[List[Tuple[str, List[str]]], int]:
-        block = []
-        i = 0
-        while i < len(commands):
-            cmd = commands[i].strip()
-            if cmd.upper() == 'END':
-                return block, i + 1
-            parts = cmd.split()
-            operation = parts[0].upper()
-            args = parts[1:]
-            if operation in ['IF', 'WHILE', 'FOREACH']:
-                sub_block, j = self.parse_block(commands[i+1:])
-                block.append((operation, args + [sub_block]))
-                i += j + 1
-            else:
-                block.append((operation, args))
-            i += 1
-        return block, i
+from typing import List, Tuple, Callable, Any
 
 class CommandMapper:
     def __init__(self,image):
@@ -73,7 +30,6 @@ class CommandMapper:
             'COUNTCOL': self.count,
             'GROUP': self.group,
             'FOREACH': self.foreach,
-            'IF': self.if_condition,
             'WHILE': self.while_loop,
             'CONVOLVE': self.convolve,
             'APPLY_FILTER': self.apply_filter,
@@ -183,7 +139,7 @@ class CommandMapper:
 
     def count(self, args: List[str]) -> Callable[[Image], int]:
         color = int(args[0])
-        return lambda img: np.sum(img.mask == color)
+        return lambda img: (print(f"The count of color {color} is: {np.sum(img.mask == color) }"), img)[-1]
 
     def group(self, args: List[str]) -> Callable[[Image], Image]:
         operations = args
@@ -464,45 +420,3 @@ class CommandMapper:
     def get_image(self, image_name: str) -> Image:
         # Implement image retrieval logic here
         pass
-    
-class SQLExecutionEngine:
-    def __init__(self, image: Image):
-        self.image = image
-        self.parser = SQLParser()
-        self.mapper = CommandMapper(image)
-        self.variable_map = {}
-
-    def execute(self, sql_string: str) -> Image:
-        commands = self.parser.parse(sql_string)
-        i = 0
-        while i < len(commands):
-            operation, args = commands[i]
-            if operation in self.mapper.function_map:
-                func = self.mapper.function_map[operation](args)
-                if operation == 'DISPLAY':
-                    func(self.image)
-                elif operation == 'FOREACH':
-                    color, sub_commands = func(self.image)
-                    self.execute_foreach(color, sub_commands)
-                    i += len(sub_commands) + 1  # Skip the sub-commands and the closing parenthesis
-                else:
-                    self.image = func(self.image)
-            else:
-                print(f"Unknown operation: {operation}")
-            i += 1
-        return self.image
-
-    def execute_foreach(self, color: int, sub_commands: List[str]):
-        for col in range(self.image.w):
-            if color in self.image.mask[:, col]:
-                for cmd in sub_commands:
-                    operation, *args = cmd.split()
-                    func = self.mapper.function_map[operation](args)
-                    if operation == 'REPLACE':
-                        self.image = func(col)
-                    else:
-                        self.image = func(self.image)
-
-
-"""Some ones whould return values, we will list them below in the list"""
-RETURN_FUNCTIONS = ["COUNTCOL"]

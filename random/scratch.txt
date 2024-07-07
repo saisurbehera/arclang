@@ -1,0 +1,105 @@
+Node(type=ROOT, children=[
+    Node(type=IF, value={'condition': '[count] > 2'}, children=[
+        Node(type=ROOT, children=[
+            Node(type=FUNCTION, value={'name': 'ELSE', 'args': ['SELECT', '0', '0', '100', '100']}, children=[]),
+        ]),
+        Node(type=EMPTY, children=[]),
+    ]),
+])
+Node(type=ROOT, children=[
+    Node(type=ASSIGN, value={'variable': 'count', 'expression': 'COUNTCOL 2;'}, children=[]),
+    Node(type=IF, value={'condition': '[count] > 2 and [count] < 10'}, children=[
+        Node(type=ROOT, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+        ]),
+        Node(type=ROOT, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'IF', 'args': ['[count]', '>', '3', 'and', '[count]', '<', '9']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['3']}, children=[]),
+        ]),
+    ]),
+    Node(type=FUNCTION_CALL, value={'name': 'END', 'args': []}, children=[]),
+])
+
+Node(type=ROOT, children=[
+    Node(type=ASSIGN, value={'variable': 'count', 'expression': 'COUNTCOL 2;'}, children=[]),
+    Node(type=FUNCTION_DEF, value={'name': 'calculate', 'params': ['a', 'b']}, children=[
+        Node(type=BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'IF', 'args': ['[count]', '>', '2', 'and', '[count]', '<', '10']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'ELSE', 'args': []}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+        ]),
+    ]),
+    Node(type=FUNCTION_CALL, value={'name': 'END', 'args': []}, children=[]),
+    Node(type=IF, value={'condition': '[count] > 2 and [count] < 10'}, children=[
+        Node(type=ROOT, children=[
+            Node(type=ROOT, children=[
+                Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+            ]),
+        ]),
+        Node(type=ROOT, children=[
+            Node(type=ROOT, children=[
+                Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            ]),
+            Node(type=ROOT, children=[
+                Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+            ]),
+        ]),
+    ]),
+])
+
+
+Node(type=ROOT, children=[
+    Node(type=ASSIGN, value={'variable': 'count', 'expression': 'COUNTCOL 2;'}, children=[]),
+    Node(type=FUNCTION_DEF, value={'name': 'calculate', 'params': ['a', 'b']}, children=[
+        Node(type=BLOCK, children=[
+            Node(type=IF, value={'condition': '[count] > 2 and [count] < 10'}, children=[
+                Node(type=BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+                ]),
+                Node(type=BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+                    Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+                ]),
+            ]),
+        ]),
+    ]),
+    Node(type=IF, value={'condition': '[count] > 2 and [count] < 10'}, children=[
+        Node(type=BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+        ]),
+        Node(type=BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+        ]),
+    ]),
+])
+
+
+Node(type=ROOT, children=[
+    Node(type=ASSIGN, value={'variable': 'count', 'expression': 'COUNTCOL 2;'}, children=[]),
+    Node(type=IF, value={'condition': '[count] > 2 and [count] < 10'}, children=[
+        Node(type=BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+        ]),
+        Node(type=BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+            Node(type=IF, value={'condition': '[count] > 3 and [count] < 9'}, children=[
+                Node(type=BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+                ]),
+                Node(type=BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+                    Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['3']}, children=[]),
+                ]),
+            ]),
+        ]),
+    ]),
+])
+
