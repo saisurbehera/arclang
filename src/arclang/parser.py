@@ -1,6 +1,5 @@
 import re
 from typing import List, Tuple
-
 from arclang.nodes import Node, Symbol, SymbolTable
 
 class Parser:
@@ -37,6 +36,13 @@ class Parser:
             elif line.upper().startswith('FOR'):
                 i, for_node = self.parse_for_loop(lines, i)
                 parent_node.children.append(for_node)
+            elif line.upper().startswith('LIST'):
+                list_node = self.parse_list_creation(line)
+                parent_node.children.append(list_node)
+                self.symbol_table.add_symbol(list_node.value['name'], 'list')
+            elif line.upper().startswith('APPEND'):
+                append_node = self.parse_list_append(line)
+                parent_node.children.append(append_node)
             elif '=' in line:
                 assign_node = self.parse_assignment(line)
                 parent_node.children.append(assign_node)
@@ -52,7 +58,7 @@ class Parser:
 
     def parse_assignment(self, line: str) -> Node:
         var_name, expression = map(str.strip, line.split('='))
-        return Node('ASSIGN', {'variable': var_name, 'expression': expression})
+        return Node('ASSIGN', {'variable': var_name, 'expression': expression},[self.parse_function_call(expression)])
 
     def parse_function_call(self, line: str) -> Node:
         match = re.match(r'(\w+)\s*(.*)', line)
@@ -63,7 +69,7 @@ class Parser:
         args_str = args_str.replace(";","")
         args = [arg.strip() for arg in args_str.split()] if args_str else []
         
-        return Node('FUNCTION_CALL', {'name': func_name.upper(), 'args': args})
+        return Node('FUNCTION', {'name': func_name.upper(), 'args': args})
 
     def parse_function_definition(self, lines: List[str], start: int) -> Tuple[int, Node]:
         def_line = lines[start].strip()
@@ -126,3 +132,22 @@ class Parser:
         i = self.parse_block(lines, start + 1, body_node)
         
         return i, Node('FOR', {'iterator': iterator, 'iterable': iterable}, [body_node])
+    
+    def parse_list_creation(self, line: str) -> Node:
+        match = re.match(r'LIST\s+(\w+)(?:\s*=\s*\[(.*?)\])?', line, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Invalid LIST creation: {line}")
+        
+        list_name, initial_values = match.groups()
+        initial_values = [v.strip() for v in initial_values.split(',')] if initial_values else []
+        
+        return Node('LIST_CREATE', {'name': list_name, 'initial_values': initial_values})
+
+    def parse_list_append(self, line: str) -> Node:
+        match = re.match(r'APPEND\s+(\w+)\s+(.+)', line, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Invalid APPEND operation: {line}")
+        
+        list_name, value = match.groups()
+        
+        return Node('LIST_APPEND', {'list': list_name, 'value': value})

@@ -1,0 +1,35 @@
+Node(type=ROOT, children=[
+    Node(type=ASSIGN, value={'variable': 'count', 'expression': 'COUNTCOL 2;'}, children=[]),
+    Node(type=IF, value={'condition': 'count > 2 and count < 10'}, children=[
+        Node(type=TRUE_BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+        ]),
+        Node(type=FALSE_BLOCK, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+            Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['4']}, children=[]),
+            Node(type=IF, value={'condition': '[count] > 3 and [count] < 9'}, children=[
+                Node(type=TRUE_BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+                ]),
+                Node(type=FALSE_BLOCK, children=[
+                    Node(type=FUNCTION_CALL, value={'name': 'SELECT', 'args': ['0', '0', '4', '4']}, children=[]),
+                    Node(type=FUNCTION_CALL, value={'name': 'FILL', 'args': ['3']}, children=[]),
+                ]),
+            ]),
+        ]),
+    ]),
+    Node(type=WHILE, value={'condition': 'count==3'}, children=[
+        Node(type=LOOP_WHILE, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'DISPLAY', 'args': []}, children=[]),
+            Node(type=ASSIGN, value={'variable': 'count', 'expression': 'count +  1;'}, children=[]),
+        ]),
+    ]),
+    Node(type=ASSIGN, value={'variable': 'S', 'expression': 'SPLIT_COMPONENTS DFS;'}, children=[]),
+    Node(type=ASSIGN, value={'variable': 'LI', 'expression': '[];'}, children=[]),
+    Node(type=FOR, value={'iterator': 'i', 'iterable': 'S:'}, children=[
+        Node(type=LOOP_FOR, children=[
+            Node(type=FUNCTION_CALL, value={'name': 'LI', 'args': ['APPEND', 'i', 'COUNT', '2']}, children=[]),
+        ]),
+    ]),
+    Node(type=FUNCTION_CALL, value={'name': 'RETURN', 'args': ['LI', 'MAX', 'S']}, children=[]),
+])
