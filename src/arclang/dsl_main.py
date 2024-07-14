@@ -59,6 +59,15 @@ class CommandMapper:
     def split(self, args: List[str]) -> Image:
         raise NotImplementedError()
 
+    def stack(self,args:List[str]) -> Image:
+        stack_type = int(args[0])
+        times = int(args[1])
+        if self.selected:
+            
+            
+    def half(self, args:List[str]) -> Image:
+        raise NotImplementedError()
+
     def fill(self, args: List[str]) -> Image:
         color = int(args[0])
         return self.apply_to_selected_area(lambda area: Image.full(Point(area.x, area.y), Point(area.w, area.h), color))

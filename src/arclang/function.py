@@ -1184,32 +1184,6 @@ def split_all(img: Image) -> List[Image]:
 
     return ret
 
-def split_all(img: Image) -> List[Image]:
-    ret = []
-    done = Image.empty(img.x, img.y, img.w, img.h)
-
-    def dfs(r: int, c: int, col: int, toadd: Image):
-        if r < 0 or r >= img.h or c < 0 or c >= img.w or img[r, c] != col or done[r, c]:
-            return
-        toadd[r, c] = img[r, c] + 1
-        done[r, c] = 1
-        for d in range(4):
-            nr = r + (d == 0) - (d == 1)
-            nc = c + (d == 2) - (d == 3)
-            dfs(nr, nc, col, toadd)
-
-    for i in range(img.h):
-        for j in range(img.w):
-            if not done[i, j]:
-                toadd = Image.empty(img.x, img.y, img.w, img.h)
-                dfs(i, j, img[i, j], toadd)
-                toadd = compress(toadd)
-                toadd.mask = np.maximum(toadd.mask - 1, 0)
-                if toadd.count() > 0:
-                    ret.append(toadd)
-
-    return ret
-
 
 def erase_col(img: Image, col: int) -> Image:
     ret = img.copy()
